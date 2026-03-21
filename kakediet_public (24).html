@@ -1,0 +1,2603 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>CASH-FIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{
+  --bg:#0d0c0b;--surf:#171614;--card:#1e1c1a;--card2:#252220;
+  --border:#2a2724;--border2:#332f2b;
+  --txt:#ede8df;--muted:#7a746d;--dim:#4a4540;
+  --amber:#e8a842;--amber2:#c48830;--amber-bg:rgba(232,168,66,.12);
+  --green:#5db87a;--green-bg:rgba(93,184,122,.12);
+  --red:#e05959;--red-bg:rgba(224,89,89,.12);
+  --blue:#5b9bd5;
+  --r8:8px;--r12:12px;--r20:20px;
+  --shadow:0 4px 20px rgba(0,0,0,.4);
+  --nav-h:56px;--bottom-nav-h:68px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  font-family:'Noto Sans JP',sans-serif;
+  background:var(--bg);color:var(--txt);
+  font-size:14px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+input,textarea,select,button{font-family:'Noto Sans JP',sans-serif}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
+
+/* ── LAYOUT ── */
+#app{display:flex;flex-direction:column;height:100%;max-height:100dvh}
+
+/* Top header */
+.hdr{
+  display:flex;align-items:center;gap:0;
+  background:var(--surf);border-bottom:1px solid var(--border);
+  height:var(--nav-h);padding:0 16px;
+  position:sticky;top:0;z-index:200;flex-shrink:0;
+}
+.logo{font-weight:900;font-size:18px;margin-right:20px;letter-spacing:.02em;white-space:nowrap}
+.logo span:first-child{color:var(--amber)}
+.logo span:last-child{color:var(--green)}
+.tab-nav{display:flex;height:100%;gap:2px}
+.tab-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:0 18px;height:100%;
+  background:transparent;border:none;border-bottom:2px solid transparent;
+  font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;
+  transition:color .15s,border-color .15s;white-space:nowrap;
+}
+.tab-btn.active-k{color:var(--amber);border-bottom-color:var(--amber);font-weight:700}
+.tab-btn.active-d{color:var(--green);border-bottom-color:var(--green);font-weight:700}
+
+/* Content area */
+.content{flex:1;overflow-y:auto;overflow-x:hidden}
+.page{display:none;max-width:960px;margin:0 auto;padding:16px}
+.page.active{display:block}
+
+/* ── CARDS & COMMON ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r12);padding:16px}
+.card+.card{margin-top:12px}
+.sec{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.lbl{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:.04em}
+
+input[type=text],input[type=number],input[type=date],select,textarea{
+  background:var(--surf);color:var(--txt);
+  border:1px solid var(--border);border-radius:var(--r8);
+  padding:9px 12px;width:100%;font-size:13px;outline:none;
+  transition:border-color .15s;
+  -webkit-appearance:none;appearance:none;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--border2)}
+textarea{resize:vertical;min-height:72px}
+select option{background:var(--surf)}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 18px;border-radius:var(--r8);border:none;
+  font-size:13px;font-weight:700;cursor:pointer;
+  transition:opacity .15s,transform .08s;white-space:nowrap;
+}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-amber{background:var(--amber);color:#000}
+.btn-green{background:var(--green);color:#000}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+.pill{
+  display:inline-flex;align-items:center;
+  padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;
+  border:none;cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.tag{
+  display:inline-flex;align-items:center;
+  padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;
+}
+.mono{font-family:'JetBrains Mono',monospace}
+
+.flex{display:flex;gap:10px}
+.flex-wrap{flex-wrap:wrap}
+.flex-col{flex-direction:column}
+.row{display:flex;align-items:center;gap:8px}
+.grow{flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* stat cards */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r12);padding:12px 14px}
+.stat .s-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.stat .s-val{font-size:19px;font-weight:800;font-family:'JetBrains Mono',monospace}
+
+/* sub-nav pills */
+.sub-nav{
+  display:flex;gap:3px;background:var(--surf);
+  padding:4px;border-radius:24px;margin-bottom:16px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;width:fit-content;max-width:100%;
+}
+.sub-nav::-webkit-scrollbar{display:none}
+.sub-nav .pill{color:var(--muted);background:transparent}
+.sub-nav .pill.ak{background:var(--amber);color:#000}
+.sub-nav .pill.ad{background:var(--green);color:#000}
+
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{padding:6px 8px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.tbl td{padding:7px 8px;border-bottom:1px solid rgba(42,39,36,.5);vertical-align:middle}
+.tbl td.r{text-align:right}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* alert */
+.alert{padding:10px 14px;border-radius:var(--r8);font-size:13px;line-height:1.6}
+.alert-green{background:var(--green-bg);border:1px solid rgba(93,184,122,.3);color:var(--green)}
+.alert-amber{background:var(--amber-bg);border:1px solid rgba(232,168,66,.3)}
+.alert-red{background:var(--red-bg);border:1px solid rgba(224,89,89,.3)}
+
+/* score ring */
+.ring{
+  display:inline-flex;flex-direction:column;align-items:center;
+  justify-content:center;border-radius:50%;border:3px solid;flex-shrink:0;
+}
+.ring .rv{font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1}
+.ring .rl{font-size:9px;color:var(--muted)}
+
+/* ── DIET TODAY VIEW ── */
+.today-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;flex-wrap:wrap;gap:8px;
+}
+.today-date{font-size:22px;font-weight:900;letter-spacing:-.01em}
+.today-meta{font-size:12px;color:var(--muted)}
+
+.meal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+
+.meal-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r12);
+  padding:14px;display:flex;flex-direction:column;gap:10px;
+  transition:border-color .2s;
+}
+.meal-card.has-score{border-color:var(--green)}
+.meal-card .mc-hdr{display:flex;align-items:center;justify-content:space-between}
+.meal-card .mc-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.meal-card .mc-icon{font-size:18px}
+
+/* photo upload - diet (green) */
+.photo-area{
+  position:relative;width:100%;padding-top:65%;
+  border:1.5px dashed var(--border2);border-radius:var(--r8);
+  overflow:hidden;cursor:pointer;background:var(--surf);
+  transition:border-color .15s,background .15s;
+}
+.photo-area:hover,.photo-area.drag{border-color:var(--green);background:rgba(93,184,122,.05)}
+/* photo upload - kakeibo (amber) */
+.photo-area-k{
+  position:relative;width:100%;
+  border:1.5px dashed var(--border2);border-radius:var(--r8);
+  overflow:hidden;cursor:pointer;background:var(--surf);
+  transition:border-color .15s,background .15s;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100px;
+}
+.photo-area-k:hover{border-color:var(--amber);background:rgba(232,168,66,.05)}
+.photo-area input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.photo-area .pa-inner{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;pointer-events:none;
+}
+.photo-area .pa-img{
+  position:absolute;inset:0;object-fit:cover;width:100%;height:100%;
+}
+.photo-area .pa-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .15s;
+}
+.photo-area:hover .pa-overlay{opacity:1}
+.photo-area .pa-overlay span{font-size:12px;color:#fff;font-weight:600}
+
+/* nutrition badges */
+.nut-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px}
+.nut-badge{
+  background:var(--surf);border-radius:6px;
+  padding:5px 4px;text-align:center;
+}
+.nut-badge .nb-l{font-size:9px;color:var(--muted)}
+.nut-badge .nb-v{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace}
+
+/* day total bar */
+.day-total{
+  background:linear-gradient(135deg,var(--card) 0%,rgba(93,184,122,.12) 100%);
+  border:1px solid var(--border);border-radius:var(--r12);
+  padding:16px;display:flex;align-items:center;gap:16px;
+  margin-bottom:16px;flex-wrap:wrap;
+}
+.progress-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;flex:1;min-width:100px}
+.progress-fill{height:100%;border-radius:4px;transition:width .4s}
+
+/* ── WEIGHT CARD (diet header) ── */
+.weight-hdr{
+  background:linear-gradient(135deg,var(--card) 0%,rgba(93,184,122,.1) 100%);
+  border:1px solid var(--border);border-radius:var(--r12);
+  padding:16px;margin-bottom:16px;
+}
+.weight-main{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px}
+.w-big{font-size:36px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
+.w-unit{font-size:14px;color:var(--muted);margin-left:2px}
+
+/* ── CHART containers ── */
+.chart-wrap{position:relative;width:100%;height:200px}
+.chart-wrap canvas{width:100%!important}
+
+/* ── BOTTOM NAV (mobile) ── */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  height:var(--bottom-nav-h);
+  background:var(--surf);border-top:1px solid var(--border);
+  justify-content:space-around;align-items:flex-start;
+  padding:8px 0 0;z-index:300;
+}
+.bn-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:transparent;border:none;cursor:pointer;
+  padding:6px 20px;border-radius:var(--r8);transition:opacity .15s;
+}
+.bn-btn .bn-icon{font-size:22px}
+.bn-btn .bn-lbl{font-size:10px;font-weight:600;color:var(--muted)}
+.bn-btn.active-k .bn-lbl{color:var(--amber)}
+.bn-btn.active-d .bn-lbl{color:var(--green)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:767px){
+  body{padding-bottom:var(--bottom-nav-h)}
+  .hdr .tab-nav{display:none}
+  .bottom-nav{display:flex}
+  .page{padding:12px 12px}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .stat-row .stat:last-child{grid-column:1/-1}
+  .meal-grid{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+  .grid3{grid-template-columns:1fr}
+  .logo{font-size:16px}
+  .hdr{padding:0 12px;justify-content:space-between}
+}
+@media(min-width:768px) and (max-width:1023px){
+  /* iPad */
+  .meal-grid{grid-template-columns:1fr 1fr}
+  .meal-grid .meal-card:last-child{grid-column:1/-1}
+  .grid3{grid-template-columns:1fr 1fr}
+}
+@media(min-width:1024px){
+  .page{padding:20px 24px}
+  .stat-row{grid-template-columns:repeat(3,1fr)}
+}
+
+/* ── LOADING OVERLAY ── */
+.loading-overlay{
+  position:fixed;inset:0;background:rgba(13,12,11,.7);
+  backdrop-filter:blur(4px);z-index:500;
+  display:none;align-items:center;justify-content:center;
+}
+.loading-overlay.show{display:flex}
+.spinner{
+  width:36px;height:36px;border:3px solid var(--border2);
+  border-top-color:var(--amber);border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:calc(var(--bottom-nav-h) + 12px);left:50%;transform:translateX(-50%) translateY(8px);
+  background:var(--card2);border:1px solid var(--border2);border-radius:24px;
+  padding:9px 20px;font-size:13px;font-weight:600;
+  white-space:nowrap;z-index:400;pointer-events:none;
+  opacity:0;transition:all .2s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(min-width:768px){
+  .toast{bottom:24px}
+}
+
+/* modal */
+.modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  z-index:400;align-items:center;justify-content:center;padding:16px;
+}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;
+  padding:20px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:14px}
+
+/* Kakeibo filter row */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.filter-row select,.filter-row input{width:auto;flex:1;min-width:100px}
+
+/* Settings modal */
+.settings-modal-bg{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(6px);
+  z-index:450;align-items:flex-start;justify-content:flex-end;
+  padding:60px 12px 12px;
+}
+.settings-modal-bg.show{display:flex}
+.settings-panel{
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:16px;width:100%;max-width:440px;
+  max-height:calc(100dvh - 80px);overflow-y:auto;
+  box-shadow:0 8px 40px rgba(0,0,0,.6);
+}
+@media(max-width:767px){
+  .settings-modal-bg{padding:60px 0 0;align-items:flex-end;justify-content:center}
+  .settings-panel{max-width:100%;border-radius:20px 20px 0 0;max-height:88dvh}
+}
+/* Settings button */
+.settings-btn{
+  margin-left:auto;
+  background:transparent;border:1px solid var(--border);
+  border-radius:8px;color:var(--muted);cursor:pointer;
+  padding:6px 10px;font-size:18px;line-height:1;
+  transition:background .15s,color .15s;flex-shrink:0;
+}
+.settings-btn:hover{background:var(--card);color:var(--txt)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="logo"><span>CASH</span><span>-FIT</span></div>
+  <nav class="tab-nav">
+    <button class="tab-btn active-k" onclick="switchTab('k')">💰 家計簿</button>
+    <button class="tab-btn" onclick="switchTab('d')">🌿 ダイエット</button>
+  </nav>
+  <button class="settings-btn" onclick="openSettings()" title="設定">⚙️</button>
+</header>
+
+<!-- CONTENT -->
+<main class="content">
+
+<!-- ═══ KAKEIBO ═══ -->
+<div id="page-k" class="page active">
+  <!-- stats -->
+  <div class="stat-row" id="k-stats"></div>
+  <!-- sub nav -->
+  <div class="sub-nav" id="k-sub"></div>
+  <!-- panels -->
+  <div id="k-panel"></div>
+</div>
+
+<!-- ═══ DIET ═══ -->
+<div id="page-d" class="page">
+  <!-- weight header -->
+  <div class="weight-hdr" id="d-weight-hdr"></div>
+  <!-- sub nav -->
+  <div class="sub-nav" id="d-sub"></div>
+  <!-- panels -->
+  <div id="d-panel"></div>
+</div>
+
+</main><!-- /content -->
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav">
+  <button class="bn-btn active-k" onclick="switchTab('k')">
+    <span class="bn-icon">💰</span><span class="bn-lbl">家計簿</span>
+  </button>
+  <button class="bn-btn" onclick="switchTab('d')">
+    <span class="bn-icon">🌿</span><span class="bn-lbl">ダイエット</span>
+  </button>
+</nav>
+
+</div><!-- /app -->
+
+<!-- SETTINGS MODAL -->
+<div class="settings-modal-bg" id="settings-modal-bg" onclick="if(event.target===this)closeSettings()">
+  <div class="settings-panel" id="settings-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0">
+      <div style="font-size:15px;font-weight:800">⚙️ アプリ設定</div>
+      <button onclick="closeSettings()" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:22px;line-height:1;padding:0 2px">×</button>
+    </div>
+    <div id="settings-content" style="padding:16px 20px 24px"></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading"><div class="spinner"></div></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" style="
+  display:flex;position:fixed;inset:0;z-index:1000;
+  background:var(--bg);align-items:center;justify-content:center;padding:20px;
+">
+  <div style="max-width:380px;width:100%;text-align:center">
+    <div style="font-size:32px;font-weight:900;margin-bottom:4px">
+      <span style="color:var(--amber)">CASH</span><span style="color:var(--green)">-FIT</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:32px;font-family:'JetBrains Mono',monospace">v${APP_VERSION_PLACEHOLDER}</div>
+
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;text-align:left">
+      <div id="login-step-1">
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">ユーザーIDを入力</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.7">
+          初めての方は自分でIDを決めてください。<br>
+          別のデバイスでも同じIDを使うとデータが同期されます。
+        </div>
+        <input type="text" id="login-uid" placeholder="例: yamada / 山田 / taro123" maxlength="30"
+          style="margin-bottom:8px;text-align:center;font-size:16px;letter-spacing:.04em"
+          onkeydown="if(event.key==='Enter')loginConfirm()">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">日本語・英数字どちらでもOK / 他人と同じIDにしないこと</div>
+        <button class="btn btn-amber" style="width:100%;font-size:14px" onclick="loginConfirm()">このIDで始める →</button>
+      </div>
+
+      <div id="login-step-2" style="display:none">
+        <div style="font-size:14px;font-weight:700;margin-bottom:10px">確認</div>
+        <div style="background:var(--surf);border-radius:8px;padding:12px;text-align:center;margin-bottom:14px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">ユーザーID</div>
+          <div id="login-uid-confirm" style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--amber)"></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.7">
+          このIDはデバイスに記憶されます。<br>別のデバイスで同じIDを入力すれば同期されます。
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" style="flex:1" onclick="loginBack()">← 戻る</button>
+          <button class="btn btn-green" style="flex:2" onclick="loginStart()">✓ 開始する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase setup notice (shown when not configured) -->
+    <div id="firebase-notice" style="display:none;margin-top:16px;background:var(--amber-bg);border:1px solid rgba(232,168,66,.3);border-radius:10px;padding:14px;text-align:left">
+      <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:6px">⚠ Firebase未設定 — オフラインモード</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.7">
+        デバイス間同期にはFirebaseの設定が必要です。<br>
+        設定なしでもこのデバイス単体では完全に使えます。<br>
+        設定方法は<strong style="color:var(--txt)">設定タブ → データ管理</strong>を参照してください。
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const TODAY = '2026-03-21';
+const APP_VERSION = '1.1.0';
+const STORAGE_KEY = 'kakediet_userdata'; // キーは変えない限り引き継がれる
+let uid = 0; const nid = () => ++uid;
+const P = (d,s,i,a,c,p) => ({id:nid(),date:d,store:s,item:i,amount:a,category:c,payment:p});
+
+const STATE = {
+  tab: 'k',
+  kSub: '入力',
+  dSub: '今日',
+  purchases: [],
+  foodLogs: [], // {id,date,mealType,meal,calories,protein,carbs,fat,fiber,score,feedback,photo}
+  trainLogs: [],
+  // 共有レシピDB: {id,name,ingredients[{name,store,price}],servings,totalCost,costPerServing,nutrition:{calories,protein,carbs,fat,fiber},tips,createdAt}
+  recipes: [],
+  weightLogs: [],
+  profile: {cw:0,tw:0,height:0,age:0,targetDate:''},
+  charts: {},
+  kHistPeriod:'今月', kHistCat:'全て', kHistQ:'',
+};
+
+const CAT_CLR = {
+  食費:'#e8a842',日用品:'#5b9bd5',衣服費:'#b87a5b',固定費:'#8b5db5',
+  収入:'#5db87a',交際費:'#d47abc',娯楽費:'#7abcd4',カフェ代:'#c4854a',
+  飲料代:'#5db5b5','教養・娯楽':'#a0b85d','食費・日用品':'#c8a842',未分類:'#666',
+};
+const fmt = n => '¥' + n.toLocaleString();
+const scoreColor = s => s>=80?'var(--green)':s>=60?'var(--amber)':'var(--red)';
+const clamp = (v,mn,mx) => Math.max(mn,Math.min(mx,v));
+
+// ═══════════════════════════════════════════════════════════
+// AI  (Gemini 1.5 Flash)
+// ═══════════════════════════════════════════════════════════
+const GEMINI_KEY = 'AIzaSyA_VCDqOH0LtWO9Bx5TcFhyqVsTpGzAkOs';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+// 通常の1回呼び出し（栄養分析・スコア等）
+async function ai(system, user, maxTokens = 1200) {
+  try {
+    const r = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: system + '\n\n' + user }] }],
+        generationConfig: { maxOutputTokens: maxTokens }
+      })
+    });
+    const d = await r.json();
+    return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  } catch(e) { return ''; }
+}
+
+// JSON専用: リトライ付き・数値を文字列→数値に強制変換
+async function aiJSON(prompt, maxTokens = 1000, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 1500 * attempt)); // リトライ前に待機
+      const r = await fetch(GEMINI_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.2 }
+        })
+      });
+      const raw = await r.json();
+      // レート制限 (429) はリトライ
+      if (raw?.error?.code === 429) {
+        console.warn(`Rate limit, retry ${attempt + 1}/${retries}`);
+        continue;
+      }
+      if (raw?.error) { console.warn('Gemini error:', raw.error.message); return null; }
+      const text = raw.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const parsed = pj(text);
+      if (!parsed) continue;
+      // 文字列で返ってきた数値を強制的に数値型に変換
+      const NUM_KEYS = ['calories','protein','carbs','fat','fiber','score'];
+      NUM_KEYS.forEach(k => { if (k in parsed) parsed[k] = Number(parsed[k]) || 0; });
+      return parsed;
+    } catch(e) {
+      console.warn(`aiJSON attempt ${attempt}:`, e.message);
+    }
+  }
+  return null;
+}
+
+// 食事分析 - シンプルな1行プロンプト形式
+async function dAnalyzeMeal(key, label) {
+  const txt = document.getElementById('mt-'+key)?.value.trim();
+  if (!txt) return;
+
+  const btn = document.querySelector(`#mc-${key} .btn-green`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 分析中…'; }
+  loading(true);
+
+  const pr = STATE.profile;
+  // シンプルなプロンプト: 指示+例の形式でGeminiが確実にJSONを返す
+  const prompt = `次の食事の栄養を分析しJSONで返せ。コードブロック不要。数値は必ず整数。
+食事: ${label} / ${txt}
+目標体重${pr.tw||65}kg 現在${pr.cw||70}kg
+
+{"meal":"${txt.slice(0,20)}","calories":500,"protein":20,"carbs":60,"fat":15,"fiber":3,"score":70,"feedback":"評価","highlights":["良い点"],"concerns":["改善点"]}
+↑この形式で実際の数値に置き換えて返せ`;
+
+  const d = await aiJSON(prompt, 800, 2);
+  loading(false);
+  if (btn) { btn.disabled = false; btn.textContent = '🤖 栄養分析 & 採点'; }
+
+  if (!d || !d.calories) {
+    toast('分析エラー: しばらく待ってから再試行してください', 'var(--red)');
+    return;
+  }
+  saveMealLog(key, d);
+}
+
+// 大量行をチャンク分割してAI解析し、結果を結合して返す
+const CHUNK_SIZE = 20; // 1回のAPI呼び出しで処理する行数
+
+async function aiParseChunked(lines, sys, onProgress) {
+  const chunks = [];
+  for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
+    chunks.push(lines.slice(i, i + CHUNK_SIZE));
+  }
+  let all = [];
+  for (let i = 0; i < chunks.length; i++) {
+    onProgress && onProgress(i + 1, chunks.length);
+    const raw = await ai(sys, chunks[i].join('\n'), 4000);
+    if (raw && raw.trim()) {
+      const match = raw.match(/\[[\s\S]*?\]/);
+      if (match) {
+        const parsed = pj(match[0]);
+        if (Array.isArray(parsed)) all = all.concat(parsed);
+      }
+    }
+    // API レート制限対策: チャンク間に少し待つ
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
+  return all;
+}
+// JSON解析: 前後の余計なテキストを除去してから解析
+const pj = s => {
+  if (!s) return null;
+  // ```json...``` ブロックを除去
+  s = s.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  // まず直接パース
+  try { return JSON.parse(s); } catch {}
+  // { } で囲まれた部分を抽出（最初の { から最後の } まで）
+  const objM = s.match(/\{[\s\S]*\}/);
+  if (objM) { try { return JSON.parse(objM[0]); } catch {} }
+  // [ ] で囲まれた部分を抽出
+  const arrM = s.match(/\[[\s\S]*\]/);
+  if (arrM) { try { return JSON.parse(arrM[0]); } catch {} }
+  return null;
+};
+
+// ═══════════════════════════════════════════════════════════
+// FIREBASE CONFIG
+// ★ Firebaseコンソールから取得した設定をここに貼り付ける
+// https://console.firebase.google.com/ → プロジェクト設定 → マイアプリ → SDKの設定と構成
+// ═══════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDAfJzQXrwlrL6buIPT5AcVUleuhzHT0cg",
+  authDomain: "cash-fit-4e09b.firebaseapp.com",
+  databaseURL: "https://cash-fit-4e09b-default-rtdb.firebaseio.com",
+  projectId: "cash-fit-4e09b",
+  storageBucket: "cash-fit-4e09b.firebasestorage.app",
+  messagingSenderId: "86645860752",
+  appId: "1:86645860752:web:53ce2fe6608cf22d22eb15"
+};
+
+const FB_CONFIGURED = !!(FIREBASE_CONFIG.databaseURL && FIREBASE_CONFIG.apiKey);
+let fbDb = null;
+let _fbListenerOff = null;  // Firebase listener の解除関数
+let _syncPending = false;   // 無限ループ防止フラグ
+
+// Firebase初期化
+if (FB_CONFIGURED) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbDb = firebase.database();
+  } catch(e) { console.warn('Firebase init failed', e); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// USER LOGIN
+// ═══════════════════════════════════════════════════════════
+const UID_KEY = 'kakediet_uid';
+let CURRENT_UID = null;
+
+function fbPath() {
+  return `kakediet/users/${CURRENT_UID}/data`;
+}
+
+function loginConfirm() {
+  const raw = document.getElementById('login-uid').value.trim();
+  if (!raw || raw.length < 1) { toast('IDを入力してください', 'var(--red)'); return; }
+  // 使用可能文字: 英数字・日本語・アンダースコア・ハイフン。スペースはアンダースコアに変換
+  const val = raw.replace(/\s+/g, '_').replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF10-\uFF19\uFF21-\uFF5A_\-]/g, '');
+  if (!val || val.length < 1) { toast('有効なIDを入力してください', 'var(--red)'); return; }
+  document.getElementById('login-uid-confirm').textContent = val;
+  document.getElementById('login-step-1').style.display = 'none';
+  document.getElementById('login-step-2').style.display = 'block';
+}
+function loginBack() {
+  document.getElementById('login-step-2').style.display = 'none';
+  document.getElementById('login-step-1').style.display = 'block';
+}
+async function loginStart() {
+  const val = document.getElementById('login-uid-confirm').textContent.trim();
+  if (!val) return;
+  CURRENT_UID = val;
+  localStorage.setItem(UID_KEY, val);
+  document.getElementById('login-modal').style.display = 'none';
+  if (!FB_CONFIGURED) {
+    document.getElementById('firebase-notice').style.display = 'block';
+  }
+  await initData();
+}
+function logout() {
+  if (!confirm('ログアウトしますか？\nこのデバイスのキャッシュは残ります。')) return;
+  localStorage.removeItem(UID_KEY);
+  if (_fbListenerOff) _fbListenerOff();
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE  (Firebase primary + localStorage cache)
+// ═══════════════════════════════════════════════════════════
+const PERSIST_KEYS = ['purchases','foodLogs','trainLogs','weightLogs','profile','recipes'];
+const PHOTO_RETENTION_DAYS = 7; // 写真の保持期間（日数）
+// ユーザーごとのlocalStorageキー
+const localKey = () => `${STORAGE_KEY}_${CURRENT_UID}`;
+
+// 日付文字列が N 日より古いか判定
+function isOlderThan(dateStr, days) {
+  if (!dateStr) return false;
+  const target = new Date(dateStr);
+  const limit = new Date();
+  limit.setDate(limit.getDate() - days);
+  return target < limit;
+}
+
+// Firebase送信用: 古い写真を除去したペイロードを作る（STATEは変えない）
+function buildFirebasePayload() {
+  const payload = {};
+  PERSIST_KEYS.forEach(k => {
+    if (k === 'foodLogs') {
+      // 7日超のエントリは photo フィールドを削除してから送る
+      payload.foodLogs = STATE.foodLogs.map(f => {
+        if (f.photo && isOlderThan(f.date, PHOTO_RETENTION_DAYS)) {
+          const { photo, ...rest } = f; // photo だけ抜く
+          return rest;
+        }
+        return f;
+      });
+    } else {
+      payload[k] = STATE[k];
+    }
+  });
+  payload._savedAt = new Date().toISOString();
+  payload._appVersion = APP_VERSION;
+  return payload;
+}
+
+// localStorageキャッシュ用: 写真はそのまま保持（デバイス内なので無料）
+function buildLocalPayload() {
+  const payload = {};
+  PERSIST_KEYS.forEach(k => { payload[k] = STATE[k]; });
+  payload._savedAt = new Date().toISOString();
+  payload._appVersion = APP_VERSION;
+  return payload;
+}
+
+// STATE内の古い写真を掃除（メモリ節約 & Firebase受信データの整合）
+function pruneOldPhotosFromState() {
+  let changed = false;
+  STATE.foodLogs = STATE.foodLogs.map(f => {
+    if (f.photo && isOlderThan(f.date, PHOTO_RETENTION_DAYS)) {
+      changed = true;
+      const { photo, ...rest } = f;
+      return rest;
+    }
+    return f;
+  });
+  return changed;
+}
+
+// STATE → Firebase & localStorage へ書き込み
+function saveState() {
+  if (!CURRENT_UID) return;
+  // localStorageには写真込みで保存（7日以内はデバイスで見られる）
+  try { localStorage.setItem(localKey(), JSON.stringify(buildLocalPayload())); } catch(e) {}
+  // Firebaseには写真なし版を送信（容量節約）
+  if (fbDb && !_syncPending) {
+    _syncPending = true;
+    fbDb.ref(fbPath()).set(buildFirebasePayload())
+      .catch(e => console.warn('Firebase write failed', e))
+      .finally(() => { _syncPending = false; });
+  }
+}
+
+// localStorage キャッシュから STATE を復元
+function loadLocalCache() {
+  try {
+    const raw = localStorage.getItem(localKey());
+    if (!raw) return false;
+    applyToState(JSON.parse(raw));
+    return true;
+  } catch(e) { return false; }
+}
+
+// データオブジェクトを STATE へ反映する共通処理
+function applyToState(data) {
+  PERSIST_KEYS.forEach(k => { if (data[k] !== undefined) STATE[k] = data[k]; });
+  const allIds = [
+    ...STATE.purchases, ...STATE.foodLogs, ...STATE.trainLogs,
+    ...STATE.weightLogs, ...STATE.recipes
+  ].map(x => x.id || 0);
+  if (allIds.length) uid = Math.max(...allIds);
+}
+
+// Firebase リアルタイムリスナーを張る
+function attachFbListener() {
+  if (!fbDb || !CURRENT_UID) return;
+  if (_fbListenerOff) _fbListenerOff();
+  const ref = fbDb.ref(fbPath());
+  const handler = ref.on('value', snap => {
+    if (_syncPending) return;
+    const data = snap.val();
+    if (!data) return;
+    // Firebaseから受け取ったデータをSTATEに反映
+    // ただし: 同日のfoodLogsでlocalに写真があればそちらを優先してマージ
+    const localPhotos = {};
+    STATE.foodLogs.forEach(f => {
+      if (f.photo) localPhotos[f.id] = f.photo;
+    });
+    applyToState(data);
+    // ローカル写真を復元（7日以内のもの）
+    STATE.foodLogs = STATE.foodLogs.map(f => {
+      if (!f.photo && localPhotos[f.id] && !isOlderThan(f.date, PHOTO_RETENTION_DAYS)) {
+        return { ...f, photo: localPhotos[f.id] };
+      }
+      return f;
+    });
+    // localStorageキャッシュ更新（写真込み）
+    try { localStorage.setItem(localKey(), JSON.stringify(buildLocalPayload())); } catch(e) {}
+    if (STATE.tab === 'k') renderKakeibo();
+    else renderDiet();
+  }, err => { console.warn('Firebase listener error', err); });
+  _fbListenerOff = () => ref.off('value', handler);
+}
+
+// 初期化: ログイン後に呼ぶ
+async function initData() {
+  loadLocalCache();
+  // 起動時に古い写真をlocalStorageからも掃除
+  if (pruneOldPhotosFromState()) {
+    try { localStorage.setItem(localKey(), JSON.stringify(buildLocalPayload())); } catch(e) {}
+  }
+  STATE.kChPeriod = '今月';
+  STATE._trainExs = [{name:'',sets:'',reps:'',dur:''}];
+  renderKakeibo();
+
+  if (fbDb) {
+    loading(true);
+    try {
+      const snap = await fbDb.ref(fbPath()).once('value');
+      const data = snap.val();
+      if (data) {
+        // ローカルの写真を退避してからFirebaseデータ適用
+        const localPhotos = {};
+        STATE.foodLogs.forEach(f => { if (f.photo) localPhotos[f.id] = f.photo; });
+        applyToState(data);
+        // 7日以内の写真をローカルから復元
+        STATE.foodLogs = STATE.foodLogs.map(f => {
+          if (!f.photo && localPhotos[f.id] && !isOlderThan(f.date, PHOTO_RETENTION_DAYS)) {
+            return { ...f, photo: localPhotos[f.id] };
+          }
+          return f;
+        });
+        try { localStorage.setItem(localKey(), JSON.stringify(buildLocalPayload())); } catch(e) {}
+      } else {
+        saveState();
+      }
+    } catch(e) { console.warn('Firebase initial load failed', e); }
+    loading(false);
+    attachFbListener();
+  } else {
+    if (!loadLocalCache()) saveState();
+  }
+  renderKakeibo();
+}
+
+// ストレージ使用量の概算（KB）
+function estimateStorageSize() {
+  try {
+    const raw = localStorage.getItem(localKey()) || '{}';
+    const totalKB = Math.round(new Blob([raw]).size / 1024);
+    const photoKB = STATE.foodLogs.reduce((s, f) => {
+      if (!f.photo) return s;
+      return s + Math.round(new Blob([f.photo]).size / 1024);
+    }, 0);
+    const fbKB = Math.round(new Blob([JSON.stringify(buildFirebasePayload())]).size / 1024);
+    return { totalKB, photoKB, fbKB };
+  } catch(e) { return { totalKB: 0, photoKB: 0, fbKB: 0 }; }
+}
+
+// JSONファイルとしてエクスポート
+function exportData() {
+  const payload = { _appVersion: APP_VERSION, _exportedAt: new Date().toISOString() };
+  PERSIST_KEYS.forEach(k => { payload[k] = STATE[k]; });
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cashfit_backup_${TODAY}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('📦 データをエクスポートしました');
+}
+
+// JSONファイルからインポート
+function importData(input, mode) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (mode === 'merge') {
+        PERSIST_KEYS.forEach(k => {
+          if (!Array.isArray(STATE[k]) || !Array.isArray(data[k])) {
+            if (data[k] !== undefined) STATE[k] = data[k]; return;
+          }
+          const existIds = new Set(STATE[k].map(x=>x.id));
+          STATE[k] = [...data[k].filter(x=>!existIds.has(x.id)), ...STATE[k]];
+        });
+        toast('✓ データを統合しました');
+      } else {
+        PERSIST_KEYS.forEach(k => { if (data[k] !== undefined) STATE[k] = data[k]; });
+        toast('✓ データを復元しました');
+      }
+      const allIds = [...STATE.purchases,...STATE.foodLogs,...STATE.trainLogs,...STATE.weightLogs,...STATE.recipes].map(x=>x.id||0);
+      if (allIds.length) uid = Math.max(...allIds);
+      saveState();
+      if (STATE.tab === 'k') renderKakeibo(); else renderDiet();
+    } catch(err) { toast('インポート失敗', 'var(--red)'); }
+  };
+  reader.readAsText(file);
+}
+
+// 全データをリセット
+function resetAllData() {
+  if (!confirm('⚠️ すべての記録・設定を削除します。\nFirebase上のデータも削除されます。\n本当に削除しますか？')) return;
+  if (fbDb) fbDb.ref(fbPath()).remove().catch(()=>{});
+  localStorage.removeItem(localKey());
+  toast('データを削除しました…', 'var(--red)');
+  setTimeout(() => location.reload(), 1500);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════════
+function loading(on) { document.getElementById('loading').classList.toggle('show', on); }
+function toast(msg, col='var(--green)') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.color = col;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function ring(score, size=52) {
+  const c = scoreColor(score);
+  const fs = size * 0.34;
+  return `<div class="ring" style="width:${size}px;height:${size}px;border-color:${c};flex-shrink:0">
+    <span class="rv" style="font-size:${fs}px;color:${c}">${score}</span>
+    <span class="rl">/ 100</span>
+  </div>`;
+}
+function tag(text, color) {
+  const bg = color + '30'; 
+  return `<span class="tag" style="background:${bg};color:${color}">${text}</span>`;
+}
+function pill(label, active, onclick, acls='ak') {
+  return `<button class="pill ${active?acls:''}" onclick="${onclick}">${label}</button>`;
+}
+function destroyChart(key) {
+  if (STATE.charts[key]) { STATE.charts[key].destroy(); delete STATE.charts[key]; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════
+function switchTab(t) {
+  STATE.tab = t;
+  document.getElementById('page-k').classList.toggle('active', t==='k');
+  document.getElementById('page-d').classList.toggle('active', t==='d');
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.remove('active-k','active-d');
+    if((i===0&&t==='k')||(i===1&&t==='d')) b.classList.add('active-'+t);
+  });
+  document.querySelectorAll('.bn-btn').forEach((b,i) => {
+    b.classList.remove('active-k','active-d');
+    if((i===0&&t==='k')||(i===1&&t==='d')) b.classList.add('active-'+t);
+  });
+  if(t==='k') renderKakeibo();
+  else renderDiet();
+}
+
+// ═══════════════════════════════════════════════════════════
+// KAKEIBO
+// ═══════════════════════════════════════════════════════════
+const K_SUBS = ['入力','履歴','比較','レシピ','グラフ'];
+
+function renderKakeibo() {
+  const exp = STATE.purchases.filter(p=>p.date.startsWith('2026-03')&&p.category!=='収入');
+  const inc = STATE.purchases.filter(p=>p.date.startsWith('2026-03')&&p.category==='収入');
+  const te = exp.reduce((s,p)=>s+p.amount,0);
+  const ti = inc.reduce((s,p)=>s+p.amount,0);
+  const bal = ti - te;
+  document.getElementById('k-stats').innerHTML = `
+    <div class="stat"><div class="s-lbl">3月の支出</div><div class="s-val" style="color:var(--red)">${fmt(te)}</div></div>
+    <div class="stat"><div class="s-lbl">3月の収入</div><div class="s-val" style="color:var(--green)">${fmt(ti)}</div></div>
+    <div class="stat"><div class="s-lbl">収支バランス</div><div class="s-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${fmt(bal)}</div></div>
+  `;
+  document.getElementById('k-sub').innerHTML = K_SUBS.map(s =>
+    pill(s, STATE.kSub===s, `kSub('${s}')`)
+  ).join('');
+  renderKPanel();
+}
+
+function kSub(s) { STATE.kSub = s; renderKakeibo(); }
+
+function renderKPanel() {
+  const el = document.getElementById('k-panel');
+  const s = STATE.kSub;
+  if(s==='入力') el.innerHTML = kInputHTML();
+  else if(s==='履歴') { el.innerHTML = kHistHTML(); }
+  else if(s==='比較') el.innerHTML = kCompareHTML();
+  else if(s==='レシピ') el.innerHTML = kRecipeHTML();
+  else if(s==='グラフ') { el.innerHTML = kChartsHTML(); setTimeout(drawKCharts,50); }
+}
+
+// ── Input ──
+function kInputHTML() {
+  const mode = STATE._inputMode || 'bulk';
+  return `
+  <!-- モード切替 -->
+  <div style="display:flex;gap:3px;background:var(--surf);padding:3px;border-radius:20px;width:fit-content;margin-bottom:14px">
+    <button onclick="STATE._inputMode='bulk';renderKPanel()" style="
+      padding:5px 16px;border-radius:16px;border:none;font-size:12px;font-weight:600;
+      cursor:pointer;font-family:inherit;
+      background:${mode==='bulk'?'var(--amber)':'transparent'};
+      color:${mode==='bulk'?'#000':'var(--muted)'}">✏️ まとめて入力</button>
+    <button onclick="STATE._inputMode='detail';renderKPanel()" style="
+      padding:5px 16px;border-radius:16px;border:none;font-size:12px;font-weight:600;
+      cursor:pointer;font-family:inherit;
+      background:${mode==='detail'?'var(--amber)':'transparent'};
+      color:${mode==='detail'?'#000':'var(--muted)'}">📷 レシート撮影 / AI確認</button>
+  </div>
+
+  ${mode === 'bulk' ? kBulkInputHTML() : kDetailInputHTML()}
+  `;
+}
+
+// ── まとめて入力モード ──
+function kBulkInputHTML() {
+  return `<div class="card">
+    <div class="sec">まとめて記録</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.7">
+      1行に1件、自由な形式で書いてください。AIが自動で解析します。
+    </p>
+    <div style="background:var(--surf);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--muted);line-height:2;font-family:'JetBrains Mono',monospace">
+      <span style="color:var(--dim)">// 書き方は何でもOK</span><br>
+      3/20 西友 モヤシ・豆腐など 547円 楽天ペイ<br>
+      昨日 セブン コーヒー180 iD<br>
+      やよい軒 味噌かつ定食 1180 食費<br>
+      今日 給料 294948 収入 銀行振込
+    </div>
+    <textarea id="kb-text" placeholder="ここに複数の記録をまとめて入力..." style="min-height:160px;margin-bottom:12px;font-size:13px;line-height:1.8"></textarea>
+    <button class="btn btn-amber" id="kb-btn" onclick="kBulkRecord()" style="font-size:14px;padding:10px 24px;width:100%">
+      🤖 AI解析して確認する
+    </button>
+  </div>
+  <div id="kb-result"></div>`;
+}
+
+// テキストからのローカルフォールバックパーサー
+function kLocalParse(txt) {
+  const lines = txt.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+  const CAT_WORDS = {
+    食費:['食','飯','ごはん','ランチ','ディナー','弁当','コーヒー','ラーメン','定食','スーパー','コンビニ','西友','セブン','ファミマ','ローソン','業務','餃子','丼','寿司','うどん','そば','カレー','ピザ'],
+    日用品:['日用','ダイソー','百均','消耗','洗剤','シャンプー','ティッシュ','ゴミ袋','掃除'],
+    衣服費:['服','ユニクロ','靴','ジーンズ','シャツ','スニーカー','洋服'],
+    固定費:['家賃','電気','ガス','水道','保険','通信','サブスク','月額','会費','ジム','ティップネス'],
+    収入:['給料','給与','収入','振込','バイト代','ボーナス'],
+    交際費:['飲み会','居酒屋','会食','接待','おごり'],
+    娯楽費:['映画','ゲーム','本','漫画','ライブ','趣味','ガチャ'],
+    カフェ代:['スタバ','タリーズ','ドトール','カフェ','ミルクティー'],
+    飲料代:['ドリンク','飲み物','お茶','ジュース','コーラ','水','爽健美茶','ほうじ茶'],
+  };
+  const guessCategory = t => {
+    for (const [cat, words] of Object.entries(CAT_WORDS)) {
+      if (words.some(w => t.includes(w))) return cat;
+    }
+    return '未分類';
+  };
+  const PAYMENTS = ['現金','iD','PayPay','楽天ペイ','QUICPay','Suica','PASMO','交通系IC','クレジットカード','クレジットiD','Visaデビット','iDデビット','口座振替','銀行振込','電子マネー','-'];
+
+  const results = [];
+  for (const line of lines) {
+    if (!line) continue;
+
+    // ── CSV形式の判定: "YYYY/MM/DD,店名,金額,カテゴリ,支払" ──
+    const csvM = line.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2}),(.+),(\d+),([^,]*),?([^,]*)$/);
+    if (csvM) {
+      const [, y, m, d, storeRaw, amtStr, catRaw, payRaw] = csvM;
+      const amount = parseInt(amtStr);
+      if (amount === 0) continue; // ノーマネーデーなどをスキップ
+      const date = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      // store と item を分離: "西友(商品名)" → store=西友, item=商品名
+      const storeItemM = storeRaw.match(/^([^(（]+)[（(](.+)[）)]$/);
+      const store = storeItemM ? storeItemM[1].trim() : storeRaw.trim();
+      const item  = storeItemM ? storeItemM[2].trim() : storeRaw.trim();
+      const category = catRaw.trim() || guessCategory(line);
+      const payment  = payRaw.trim() === '-' ? '' : payRaw.trim();
+      results.push({ date, store, item, amount, category, payment });
+      continue;
+    }
+
+    // ── 自由形式のフォールバック ──
+    const dateRe = /(?<!\d)(\d{1,2})[\/\-](\d{1,2})(?!\d)/;
+    const dateM = line.match(dateRe);
+    let date = TODAY;
+    if (dateM) {
+      const mo = dateM[1].padStart(2,'0'), dy = dateM[2].padStart(2,'0');
+      if (parseInt(dateM[1]) <= 12) date = `2026-${mo}-${dy}`;
+    } else if (line.includes('昨日')) {
+      const d = new Date(TODAY); d.setDate(d.getDate()-1);
+      date = d.toISOString().slice(0,10);
+    }
+
+    // 日付部分を先に除去してから金額を探す（"3/20"の"20"を金額と誤認しないため）
+    const lineNoDate = line.replace(dateRe, '').replace(/昨日|今日/g, '');
+
+    // 金額: ¥数字 > 数字円 > 3桁以上の数値（優先順位この順）
+    const amountRe = /[¥￥](\d+)|(\d+)円|(?<!\d)(\d{3,7})(?!\d)/;
+    const amM = lineNoDate.match(amountRe);
+    if (!amM) continue;
+    const amount = parseInt(amM[1] || amM[2] || amM[3]);
+    if (!amount || amount > 9999999) continue;
+
+    const cleaned = lineNoDate
+      .replace(amountRe, '')
+      .replace(/[¥￥円,，]/g, '')
+      .trim();
+    const parts = cleaned.split(/[\s　\t]+/).filter(Boolean);
+    const store = parts[0] || '不明';
+    const item  = parts.slice(1).join(' ') || store;
+    const category = guessCategory(line);
+    const payment = PAYMENTS.find(p => line.includes(p)) || '';
+    results.push({ date, store, item, amount, category, payment });
+  }
+  return results;
+}
+
+async function kBulkRecord() {
+  const txt = document.getElementById('kb-text')?.value.trim();
+  if (!txt) { toast('テキストを入力してください', 'var(--amber)'); return; }
+
+  // 有効行を抽出（空行・コメント除外）
+  const lines = txt.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('//'));
+  if (!lines.length) { toast('有効な行がありません', 'var(--amber)'); return; }
+
+  const totalChunks = Math.ceil(lines.length / CHUNK_SIZE);
+  const btn = document.getElementById('kb-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 解析中…'; }
+
+  // プログレス表示
+  const showProgress = (cur, total) => {
+    const pct = Math.round((cur / total) * 100);
+    const el = document.getElementById('kb-progress');
+    if (el) el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+        <span style="color:var(--muted)">解析中… ${cur}/${total} チャンク</span>
+        <span style="color:var(--amber);font-weight:700">${pct}%</span>
+      </div>
+      <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden">
+        <div style="background:var(--amber);height:100%;width:${pct}%;border-radius:4px;transition:width .3s"></div>
+      </div>`;
+  };
+
+  document.getElementById('kb-result').innerHTML = `
+    <div class="card" style="margin-top:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">
+        📊 ${lines.length}行を ${totalChunks}回に分けて解析します
+      </div>
+      <div id="kb-progress"></div>
+    </div>`;
+
+  showProgress(0, totalChunks);
+
+  const sys = `家計簿アシスタント。複数の買い物記録をJSON配列のみで返せ。説明・コードブロック不要。
+形式:[{"date":"YYYY-MM-DD","store":"店名","item":"商品・内容","amount":数値,"category":"食費|日用品|衣服費|固定費|収入|交際費|娯楽費|カフェ代|飲料代|教養・娯楽|未分類","payment":"支払方法（不明なら空文字）"}]
+CSV形式(YYYY/MM/DD,店名(商品),金額,カテゴリ,支払)にも対応。店名に括弧がある場合はstore=括弧前、item=括弧内。
+ルール: amountは整数 / 金額0はスキップ / 全行を漏らさず処理せよ / 日付はYYYY-MM-DD形式に変換`;
+
+  let parsed = [];
+  let usedFallback = false;
+
+  // ① チャンク分割AI解析
+  try {
+    parsed = await aiParseChunked(lines, sys, (cur, total) => showProgress(cur, total));
+  } catch(e) { parsed = []; }
+
+  // ② AI失敗行はローカルパーサーで補完
+  if (parsed.length < lines.length * 0.5) {
+    // AI結果が少なすぎる場合はローカルパーサーで全行を処理
+    const local = kLocalParse(txt);
+    if (local.length > parsed.length) {
+      parsed = local;
+      usedFallback = true;
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '🤖 AI解析して確認する'; }
+
+  if (!parsed || !parsed.length) {
+    document.getElementById('kb-result').innerHTML = `
+      <div class="alert alert-red" style="margin-top:12px">
+        <div style="font-weight:700;margin-bottom:4px">⚠ 解析できませんでした</div>
+        <div style="font-size:12px">金額（例: 1000円 / ¥1000 / 1000）が含まれているか確認してください。</div>
+      </div>`;
+    return;
+  }
+
+  // ③ プレビュー表示
+  const rows = parsed.map((p) => `
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:64px">${p.date}</span>
+      <span style="font-weight:600;font-size:13px;min-width:80px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.store}</span>
+      <span style="color:var(--muted);font-size:12px;flex:1;min-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.item}</span>
+      <span class="mono" style="color:${p.category==='収入'?'var(--green)':'var(--amber)'};font-weight:700;white-space:nowrap">
+        ${p.category==='収入'?'+':''}${fmt(p.amount)}
+      </span>
+      ${tag(p.category, CAT_CLR[p.category]||'#666')}
+      ${p.payment?`<span style="font-size:11px;color:var(--muted)">${p.payment}</span>`:''}
+    </div>`).join('');
+
+  const savedParsed = JSON.stringify(parsed);
+  const totalExp = parsed.filter(p=>p.category!=='収入').reduce((s,p)=>s+p.amount,0);
+  const totalInc = parsed.filter(p=>p.category==='収入').reduce((s,p)=>s+p.amount,0);
+
+  document.getElementById('kb-result').innerHTML = `
+    <div class="card" style="margin-top:12px${usedFallback?';border-color:rgba(232,168,66,.5)':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-weight:700;font-size:14px">${parsed.length}件を解析（入力 ${lines.length}行）</div>
+          ${usedFallback
+            ? `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ 一部ローカル解析を使用。内容を確認してください。</div>`
+            : `<div style="font-size:11px;color:var(--green);margin-top:2px">✓ AI解析完了。内容を確認して保存してください。</div>`}
+        </div>
+        <div style="text-align:right">
+          <div class="mono" style="font-size:12px;color:var(--red)">支出: ${fmt(totalExp)}</div>
+          ${totalInc>0?`<div class="mono" style="font-size:12px;color:var(--green)">収入: ${fmt(totalInc)}</div>`:''}
+        </div>
+      </div>
+      <!-- スクロール可能な結果一覧 -->
+      <div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 8px">
+        ${rows}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('kb-result').innerHTML='';document.getElementById('kb-text').focus()">
+          ✎ 修正する
+        </button>
+        <button class="btn btn-green" style="flex:1" onclick="kBulkSave(${savedParsed.replace(/"/g,'&quot;')})">
+          ✓ ${parsed.length}件をデバイスに保存する
+        </button>
+      </div>
+    </div>`;
+}
+
+function kBulkSave(parsed) {
+  if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+  const items = parsed.filter(p => p.amount > 0).map(p => ({...p, id: nid()}));
+  if (!items.length) { toast('保存できる項目がありません', 'var(--red)'); return; }
+  STATE.purchases = [...items, ...STATE.purchases];
+  saveState();
+  toast(`✓ ${items.length}件をデバイスに保存しました`);
+  // テキストエリアをクリアして完了表示
+  const ta = document.getElementById('kb-text');
+  if (ta) ta.value = '';
+  document.getElementById('kb-result').innerHTML = `
+    <div class="card" style="margin-top:12px;border-color:var(--green)55;text-align:center;padding:20px">
+      <div style="font-size:28px;margin-bottom:8px">✅</div>
+      <div style="font-weight:700;font-size:14px">${items.length}件をデバイスに保存しました</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">合計支出: ${fmt(items.filter(p=>p.category!=='収入').reduce((s,p)=>s+p.amount,0))}</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
+        <button class="btn btn-ghost btn-sm" onclick="STATE._inputMode='bulk';renderKPanel()">続けて入力</button>
+        <button class="btn btn-amber btn-sm" onclick="STATE.kSub='履歴';renderKakeibo()">履歴を確認 →</button>
+      </div>
+    </div>`;
+}
+
+// ── 詳細モード（AI確認付き）──
+function kDetailInputHTML() {
+  return `<div class="card">
+    <div class="sec">レシート撮影 / 詳細入力（確認あり）</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">写真を撮るか、テキストを入力してAI解析後に内容を確認してから保存します</p>
+    <div style="display:flex;gap:10px;margin-bottom:12px;align-items:stretch">
+      <div class="photo-area-k" style="flex:0 0 110px;min-height:80px;flex-direction:column;gap:6px" onclick="document.getElementById('ki-photo').click()">
+        <input type="file" id="ki-photo" accept="image/*" capture="environment" style="display:none" onchange="kPhotoOCR(this)">
+        <div id="ki-photo-inner" style="display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none">
+          <span style="font-size:26px">📷</span>
+          <span style="font-size:11px;color:var(--muted);text-align:center">レシート撮影</span>
+        </div>
+      </div>
+      <textarea id="ki-text" placeholder="2026/03/21 西友&#10;カット野菜 ¥198&#10;豚バラ肉 ¥456&#10;合計 ¥654 楽天ペイ" style="flex:1;min-height:80px;resize:none"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-amber" onclick="kParseInput()" id="ki-btn">🤖 AI解析（確認あり）</button>
+      <span style="font-size:11px;color:var(--muted);align-self:center">写真を選ぶと自動でテキスト抽出</span>
+    </div>
+  </div>
+  <div id="ki-result"></div>`;
+}
+async function kPhotoOCR(input) {
+  const file = input.files[0]; if(!file) return;
+  // Show loading state in photo button
+  const inner = document.getElementById('ki-photo-inner');
+  if(inner) inner.innerHTML = '<span style="font-size:20px">⏳</span><span style="font-size:10px;color:var(--amber)">解析中…</span>';
+  loading(true);
+  // Convert to base64
+  const b64 = await new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result.split(',')[1]);
+    r.readAsDataURL(file);
+  });
+  // Gemini Vision API でレシート読み取り
+  try {
+    const resp = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: file.type || 'image/jpeg', data: b64 } },
+            { text: 'このレシート画像から、店名・日付・商品名・金額・支払方法をすべてテキストとして書き出してください。読み取れた情報をそのまま日本語で出力してください。推測は不要で、読み取れた文字のみ。' }
+          ]
+        }],
+        generationConfig: { maxOutputTokens: 800 }
+      })
+    });
+    const data = await resp.json();
+    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const ta = document.getElementById('ki-text');
+    if(ta) ta.value = (ta.value ? ta.value+'\n\n' : '') + txt;
+    if(inner) inner.innerHTML = '<span style="font-size:20px;color:var(--green)">✓</span><span style="font-size:10px;color:var(--green)">取込完了</span>';
+    toast('📷 レシートを読み取りました');
+  } catch(e) {
+    if(inner) inner.innerHTML = '<span style="font-size:20px">📷</span><span style="font-size:10px;color:var(--red)">失敗</span>';
+    toast('読み取りに失敗しました', 'var(--red)');
+  }
+  loading(false);
+}
+async function kParseInput() {
+  const txt = document.getElementById('ki-text').value.trim();
+  if(!txt) return;
+  document.getElementById('ki-btn').disabled = true;
+  loading(true);
+  const sys = `家計簿アシスタント。レシートや買い物記録をJSON配列で返せ。他テキスト不要。
+形式:[{"date":"YYYY-MM-DD","store":"店名","item":"商品","amount":数値,"category":"食費|日用品|衣服費|固定費|収入|交際費|娯楽費|カフェ代|飲料代|教養・娯楽|未分類","payment":"支払方法"}]
+今日:${TODAY}。日付不明なら今日を使え。`;
+  const r = await ai(sys, txt);
+  loading(false);
+  document.getElementById('ki-btn').disabled = false;
+  const parsed = pj(r) || [{error:'解析失敗: '+r.slice(0,60)}];
+  const html = parsed.map((p,i) => p.error
+    ? `<div style="color:var(--red);font-size:13px;padding:8px 0">${p.error}</div>`
+    : `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--muted);font-size:11px">${p.date}</span>
+        <span style="font-weight:600">${p.store}</span>
+        <span style="color:var(--muted);flex:1;font-size:12px">${p.item}</span>
+        <span class="mono" style="color:var(--amber);font-weight:700">${fmt(p.amount)}</span>
+        ${tag(p.category, CAT_CLR[p.category]||'#666')}
+        <span style="font-size:11px;color:var(--muted)">${p.payment}</span>
+      </div>`
+  ).join('');
+  document.getElementById('ki-result').innerHTML = `
+    <div class="card" style="margin-top:12px">
+      <div class="sec">解析結果を確認</div>
+      ${html}
+      <button class="btn btn-green" style="margin-top:12px" onclick="kConfirmInput(${JSON.stringify(parsed).replace(/"/g,'&quot;')})">✓ 追加する</button>
+    </div>`;
+}
+function kConfirmInput(parsed) {
+  const items = (typeof parsed === 'string' ? JSON.parse(parsed) : parsed)
+    .filter(p=>!p.error).map(p=>({...p,id:nid()}));
+  STATE.purchases = [...items, ...STATE.purchases];
+  saveState();
+  toast('✓ '+items.length+'件追加しました');
+  STATE.kSub = '履歴'; renderKakeibo();
+}
+
+// ── History ──
+function kHistHTML() {
+  const cats = ['全て',...new Set(STATE.purchases.map(p=>p.category))];
+  const filtered = STATE.purchases.filter(p => {
+    const ip = STATE.kHistPeriod==='今月'?p.date.startsWith('2026-03'):STATE.kHistPeriod==='先月'?p.date.startsWith('2026-02'):true;
+    const ic = STATE.kHistCat==='全て'||p.category===STATE.kHistCat;
+    const iq = !STATE.kHistQ||p.store.includes(STATE.kHistQ)||p.item.includes(STATE.kHistQ);
+    return ip&&ic&&iq;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+  const totalExp = filtered.filter(p=>p.category!=='収入').reduce((s,p)=>s+p.amount,0);
+  return `<div class="card">
+    <div class="filter-row">
+      <select onchange="STATE.kHistPeriod=this.value;kSub('履歴')">
+        ${['今月','先月','全て'].map(v=>`<option ${STATE.kHistPeriod===v?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <select onchange="STATE.kHistCat=this.value;kSub('履歴')">
+        ${cats.map(c=>`<option ${STATE.kHistCat===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <input type="text" value="${STATE.kHistQ}" onchange="STATE.kHistQ=this.value;kSub('履歴')" placeholder="店名・商品検索" style="min-width:120px">
+    </div>
+    <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>日付</th><th>店舗</th><th>内容</th><th class="r">金額</th><th>カテゴリ</th><th>支払</th><th></th></tr></thead>
+      <tbody>
+      ${filtered.map(p=>`<tr>
+        <td style="color:var(--muted);white-space:nowrap;font-size:11px">${p.date}</td>
+        <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${p.store}</td>
+        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${p.item}</td>
+        <td class="r mono" style="color:${p.category==='収入'?'var(--green)':'var(--txt)'}">
+          ${p.category==='収入'?'+':''}${fmt(p.amount)}</td>
+        <td>${tag(p.category,CAT_CLR[p.category]||'#666')}</td>
+        <td style="font-size:11px;color:var(--muted)">${p.payment}</td>
+        <td><button onclick="kDel(${p.id})" style="background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:16px;padding:0 4px">×</button></td>
+      </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+    <div style="padding:6px 4px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);margin-top:4px">
+      ${filtered.length}件 / 支出合計: ${fmt(totalExp)}
+    </div>
+  </div>`;
+}
+function kDel(id) {
+  STATE.purchases = STATE.purchases.filter(p=>p.id!==id);
+  saveState();
+  kSub('履歴');
+}
+
+// ── Compare ──
+function kCompareHTML() {
+  return `<div class="card">
+    <div class="sec">店舗別 価格比較</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">比較したい商品・食材名を入力（例: もやし、コンビニ vs スーパー）</p>
+    <div style="display:flex;gap:8px;margin-bottom:0">
+      <input type="text" id="kc-q" placeholder="例: もやし、コーヒー" style="flex:1" onkeydown="if(event.key==='Enter')kCompare()">
+      <button class="btn btn-amber" onclick="kCompare()" id="kc-btn">比較</button>
+    </div>
+  </div>
+  <div id="kc-result"></div>`;
+}
+async function kCompare() {
+  const q = document.getElementById('kc-q').value.trim(); if(!q)return;
+  document.getElementById('kc-btn').disabled=true; loading(true);
+  const hist = STATE.purchases.filter(p=>p.category!=='収入').map(p=>`${p.date} ${p.store} ${p.item} ¥${p.amount}`).join('\n');
+  const sys = `家計簿分析アシスタント。JSONのみ:{"comparison":[{"store":"店名","item":"商品","price":数値,"date":"日付"}],"recommendation":"推奨文","savings":"節約額の説明"}`;
+  const r = await ai(sys, `購買履歴から「${q}」の価格比較をしてください。\n\n履歴:\n${hist}`);
+  loading(false); document.getElementById('kc-btn').disabled=false;
+  const d = pj(r)||{recommendation:r,comparison:[]};
+  const rows = (d.comparison||[]).map(c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div><span style="font-weight:600">${c.store}</span><span style="color:var(--muted);font-size:12px;margin-left:8px">${c.item}</span></div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span style="font-size:11px;color:var(--muted)">${c.date}</span>
+        <span class="mono" style="color:var(--amber);font-weight:700">${fmt(c.price)}</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('kc-result').innerHTML = `
+    <div class="card" style="margin-top:12px">
+      ${rows?`<div class="sec">購買履歴での比較</div>${rows}<br>`:''}
+      <div class="alert alert-amber">
+        <div style="font-size:11px;color:var(--amber);font-weight:700;margin-bottom:6px">💡 AIアドバイス</div>
+        <p style="font-size:13px;line-height:1.7">${d.recommendation}</p>
+        ${d.savings?`<p style="font-size:12px;color:var(--green);margin-top:8px">💰 ${d.savings}</p>`:''}
+      </div>
+    </div>`;
+}
+
+// ── Recipe (shared with Diet) ──
+function kRecipeHTML() {
+  const recipes = STATE.recipes;
+  return `<div class="card">
+    <div class="sec">レシピ食材 コスト計算 & 最安値プランナー</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">料理名と人数を入力。一食あたりの費用を計算し、ダイエットタブと共有します</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="kr-q" placeholder="例: カレー、麻婆豆腐、野菜炒め" style="flex:1;min-width:140px" onkeydown="if(event.key==='Enter')kRecipe()">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <label style="font-size:12px;color:var(--muted);white-space:nowrap">人数</label>
+        <input type="number" id="kr-servings" value="1" min="1" max="20" style="width:60px;text-align:center">
+      </div>
+      <button class="btn btn-amber" onclick="kRecipe()" id="kr-btn">計算 & 最適化</button>
+    </div>
+  </div>
+  <div id="kr-result"></div>
+  ${recipes.length ? `
+  <div class="card" style="margin-top:12px">
+    <div class="sec">保存済みレシピ (${recipes.length}件)</div>
+    ${recipes.map(r=>`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px">${r.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${r.ingredients.slice(0,3).map(i=>i.name).join('・')}${r.ingredients.length>3?'…':''}</div>
+        </div>
+        <div style="text-align:right;margin-left:12px;flex-shrink:0">
+          <div class="mono" style="color:var(--amber);font-weight:700">${fmt(r.costPerServing)}<span style="font-size:10px;font-weight:400">/食</span></div>
+          <div style="font-size:11px;color:var(--muted)">${r.servings}人前 合計${fmt(r.totalCost)}</div>
+          ${r.nutrition?`<div style="font-size:10px;color:var(--green);margin-top:2px">${r.nutrition.calories}kcal / P${r.nutrition.protein}g</div>`:''}
+        </div>
+        <button onclick="kDelRecipe(${r.id})" style="background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:16px;margin-left:8px;padding:0 2px;align-self:flex-start">×</button>
+      </div>`).join('')}
+  </div>` : ''}`;
+}
+async function kRecipe() {
+  const q = document.getElementById('kr-q').value.trim(); if(!q)return;
+  const servings = parseInt(document.getElementById('kr-servings').value)||1;
+  document.getElementById('kr-btn').disabled=true; loading(true);
+  const items = STATE.purchases.filter(p=>p.category==='食費').map(p=>`${p.store}: ${p.item} ¥${p.amount}`).join('\n');
+  const sys = `料理コスト最適化アシスタント。JSONのみ返せ:
+{"dish":"料理名","ingredients":[{"name":"材料名","store":"推奨店名","estimatedPrice":数値,"reason":"理由"}],"totalEstimated":合計金額,"tips":"節約のコツ"}
+totalEstimatedは全材料費の合計。`;
+  const r = await ai(sys, `「${q}」(${servings}人前)を最安値で作る材料と店舗を提案。\n購買履歴:\n${items}`);
+  loading(false); document.getElementById('kr-btn').disabled=false;
+  const d = pj(r)||{tips:r,ingredients:[],dish:q,totalEstimated:0};
+  const total = d.totalEstimated||d.ingredients?.reduce((s,i)=>s+(i.estimatedPrice||0),0)||0;
+  const perServing = Math.round(total/servings);
+  const ings = (d.ingredients||[]).map(ing=>`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1"><div style="font-weight:600;font-size:13px">${ing.name}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${ing.reason}</div></div>
+      <div style="text-align:right;margin-left:16px;flex-shrink:0">
+        <div class="mono" style="color:var(--amber);font-weight:700">${fmt(ing.estimatedPrice||0)}</div>
+        <div style="font-size:11px;color:var(--green)">${ing.store}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('kr-result').innerHTML = `
+    <div class="card" style="margin-top:12px">
+      ${d.dish?`<div style="font-size:18px;font-weight:800;margin-bottom:12px">${d.dish}</div>`:''}
+      ${ings}
+      <!-- Cost summary -->
+      <div style="background:var(--amber-bg);border:1px solid rgba(232,168,66,.3);border-radius:8px;padding:12px;margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;color:var(--muted)">材料費合計 (${servings}人前)</span>
+          <span class="mono" style="font-weight:700;color:var(--amber);font-size:16px">${fmt(total)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid rgba(232,168,66,.3)">
+          <span style="font-size:13px;font-weight:700">💰 一食あたり</span>
+          <span class="mono" style="font-weight:800;color:var(--amber);font-size:20px">${fmt(perServing)}</span>
+        </div>
+      </div>
+      ${d.tips?`<div class="alert alert-green" style="margin-top:10px"><div style="font-size:11px;color:var(--green);font-weight:700;margin-bottom:4px">💡 節約のコツ</div><p style="font-size:13px;line-height:1.7;color:var(--txt)">${d.tips}</p></div>`:''}
+      <button class="btn btn-amber" style="margin-top:12px;width:100%" onclick="kSaveRecipe(${JSON.stringify({dish:d.dish,ingredients:d.ingredients||[],total,perServing,servings}).replace(/"/g,'&quot;')})">📌 レシピを保存（ダイエットタブと共有）</button>
+    </div>`;
+}
+function kSaveRecipe(data) {
+  if(typeof data==='string') data=JSON.parse(data);
+  STATE.recipes.push({
+    id:nid(),
+    name:data.dish,
+    ingredients:(data.ingredients||[]).map(i=>({name:i.name,store:i.store,price:i.estimatedPrice||0})),
+    servings:data.servings,
+    totalCost:data.total,
+    costPerServing:data.perServing,
+    nutrition:null,
+    createdAt:TODAY
+  });
+  saveState();
+  toast('📌 レシピを保存しました');
+  kSub('レシピ');
+}
+function kDelRecipe(id) {
+  STATE.recipes = STATE.recipes.filter(r=>r.id!==id);
+  saveState();
+  kSub('レシピ');
+}
+
+// ── Charts ──
+function kChartsHTML() {
+  return `<div style="display:flex;gap:8px;margin-bottom:16px" id="kch-period-nav">
+    ${['今月','先月','全て'].map(p=>`<button class="btn btn-sm ${STATE.kChPeriod===p?'btn-amber':'btn-ghost'}" onclick="STATE.kChPeriod='${p}';kSub('グラフ')">${p}</button>`).join('')}
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="sec">カテゴリ別支出</div><div class="chart-wrap" style="height:220px"><canvas id="kc-pie"></canvas></div></div>
+    <div class="card"><div class="sec">店舗別 Top8</div><div class="chart-wrap" style="height:220px"><canvas id="kc-store"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-top:12px"><div class="sec">日別支出推移</div><div class="chart-wrap"><canvas id="kc-day"></canvas></div></div>`;
+}
+function drawKCharts() {
+  if(!document.getElementById('kc-pie')) return;
+  const p = STATE.kChPeriod||'今月';
+  const filtered = STATE.purchases.filter(x => {
+    const ok = p==='今月'?x.date.startsWith('2026-03'):p==='先月'?x.date.startsWith('2026-02'):true;
+    return ok && x.category!=='収入';
+  });
+  const catMap = filtered.reduce((a,x)=>({...a,[x.category]:(a[x.category]||0)+x.amount}),{});
+  const cats = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const storeMap = filtered.reduce((a,x)=>({...a,[x.store]:(a[x.store]||0)+x.amount}),{});
+  const stores = Object.entries(storeMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const dayMap = filtered.reduce((a,x)=>({...a,[x.date.slice(5)]:(a[x.date.slice(5)]||0)+x.amount}),{});
+  const days = Object.entries(dayMap).sort((a,b)=>a[0].localeCompare(b[0]));
+  const opts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a746d',font:{size:11},boxWidth:12}},tooltip:{backgroundColor:'#1e1c1a',titleColor:'#ede8df',bodyColor:'#ede8df',borderColor:'#2a2724',borderWidth:1}}};
+  const ax = {ticks:{color:'#7a746d',font:{size:10}},grid:{color:'rgba(42,39,36,.5)'}};
+  destroyChart('pie'); destroyChart('store'); destroyChart('day');
+  STATE.charts.pie = new Chart(document.getElementById('kc-pie'),{type:'doughnut',data:{labels:cats.map(c=>c[0]),datasets:[{data:cats.map(c=>c[1]),backgroundColor:cats.map(c=>(CAT_CLR[c[0]]||'#666')+'cc'),borderWidth:2,borderColor:'#1e1c1a'}]},options:{...opts,plugins:{...opts.plugins,legend:{...opts.plugins.legend,position:'right'}}}});
+  STATE.charts.store = new Chart(document.getElementById('kc-store'),{type:'bar',data:{labels:stores.map(s=>s[0].length>8?s[0].slice(0,7)+'…':s[0]),datasets:[{data:stores.map(s=>s[1]),backgroundColor:'#e8a84299',borderColor:'#e8a842',borderWidth:1,borderRadius:4}]},options:{...opts,indexAxis:'y',plugins:{...opts.plugins,legend:{display:false}},scales:{x:{...ax,ticks:{...ax.ticks,callback:v=>'¥'+(v/1000).toFixed(0)+'k'}},y:{...ax}}}});
+  STATE.charts.day = new Chart(document.getElementById('kc-day'),{type:'line',data:{labels:days.map(d=>d[0]),datasets:[{data:days.map(d=>d[1]),borderColor:'#e8a842',backgroundColor:'rgba(232,168,66,.12)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#e8a842'}]},options:{...opts,plugins:{...opts.plugins,legend:{display:false}},scales:{x:ax,y:{...ax,ticks:{...ax.ticks,callback:v=>'¥'+(v/1000).toFixed(0)+'k'}}}}});
+}
+
+// ═══════════════════════════════════════════════════════════
+// DIET
+// ═══════════════════════════════════════════════════════════
+const D_SUBS = ['今日','まとめて記録','レシピ','運動','グラフ','設定'];
+
+function renderDiet() {
+  const pr = STATE.profile;
+  const diff = (pr.cw - pr.tw).toFixed(1);
+  const pct = clamp(((70-pr.cw)/(70-pr.tw+.001))*100,0,100);
+  const bmi = (pr.cw/((pr.height/100)**2)).toFixed(1);
+  document.getElementById('d-weight-hdr').innerHTML = `
+    <div class="weight-main">
+      <div>
+        <span class="w-big">${pr.cw}</span><span class="w-unit">kg</span>
+        <span style="font-size:13px;color:var(--muted);margin-left:8px">→ 目標 ${pr.tw} kg</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:15px;color:var(--green);font-weight:700">あと ${diff} kg</div>
+        <div style="font-size:11px;color:var(--muted)">BMI ${bmi} ／ 目標 ${pr.targetDate}</div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct.toFixed(0)}%;background:linear-gradient(90deg,var(--green),#a8e6bc)"></div></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">目標達成度 ${pct.toFixed(0)}%</div>
+  `;
+  document.getElementById('d-sub').innerHTML = D_SUBS.map(s =>
+    pill(s, STATE.dSub===s, `dSub('${s}')`, 'ad')
+  ).join('');
+  renderDPanel();
+}
+function dSub(s) { STATE.dSub=s; renderDiet(); }
+
+function renderDPanel() {
+  const el = document.getElementById('d-panel');
+  const s = STATE.dSub;
+  if(s==='今日') { el.innerHTML = dTodayHTML(); }
+  else if(s==='まとめて記録') { el.innerHTML = dBulkHTML(); }
+  else if(s==='レシピ') { el.innerHTML = dRecipeHTML(); }
+  else if(s==='運動') el.innerHTML = dTrainHTML();
+  else if(s==='グラフ') { el.innerHTML = dChartsHTML(); setTimeout(drawDCharts,50); }
+  else if(s==='設定') el.innerHTML = dSettingsHTML();
+}
+
+// ── まとめて食事記録 ──
+function dBulkHTML() {
+  const logs = [...STATE.foodLogs].sort((a,b) => b.date.localeCompare(a.date));
+  const recentLogs = logs.slice(0, 60);
+  const MEAL_LABEL = { breakfast:'朝食', lunch:'昼食', dinner:'夕食', snack:'間食' };
+
+  return `
+  <!-- 体重まとめ入力 -->
+  <div class="card" style="margin-bottom:12px">
+    <div class="sec">体重をまとめて記録</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.7">過去の体重を一気に入力できます。グラフに即反映されます。</p>
+    <div style="background:var(--surf);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--muted);line-height:2;font-family:'JetBrains Mono',monospace">
+      <span style="color:var(--dim)">// 書き方の例</span><br>
+      3/20 68.5<br>
+      3/19 69.0<br>
+      2026/03/15 69.8kg<br>
+      3/10 体重 70.2
+    </div>
+    <textarea id="dw-text" placeholder="日付 体重(kg) を1行1件で入力..." style="min-height:100px;margin-bottom:10px;font-size:13px;line-height:1.8"></textarea>
+    <button class="btn btn-green" id="dw-btn" onclick="dBulkSaveWeight()" style="width:100%;padding:10px;font-size:14px">
+      ⚖️ 体重を記録する
+    </button>
+    <div id="dw-result"></div>
+  </div>
+
+  <!-- 食事まとめ入力 -->
+  <div class="card">
+    <div class="sec">食事をまとめて記録</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.7">
+      過去の食事をまとめて入力できます。1行に1食分、自由な形式でOKです。
+    </p>
+    <div style="background:var(--surf);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--muted);line-height:2;font-family:'JetBrains Mono',monospace">
+      <span style="color:var(--dim)">// 書き方の例</span><br>
+      3/20 朝 ご飯・味噌汁・目玉焼き / 昼 カツ丼セット / 夜 ラーメン・餃子<br>
+      3/19 朝食 トースト・コーヒー・バナナ<br>
+      2/18 昼 楽観 醤油ラーメン
+    </div>
+    <textarea id="db-text" placeholder="ここに複数の食事記録をまとめて入力..." style="min-height:140px;margin-bottom:12px;font-size:13px;line-height:1.8"></textarea>
+    <button class="btn btn-green" id="db-btn" onclick="dBulkAnalyze()" style="width:100%;font-size:14px;padding:10px">
+      🤖 AI解析して記録する
+    </button>
+  </div>
+  <div id="db-result"></div>
+
+  ${recentLogs.length ? `
+  <div class="card" style="margin-top:14px">
+    <div class="sec">食事記録 （${logs.length}件）</div>
+    <div style="max-height:400px;overflow-y:auto">
+    ${Object.entries(
+        recentLogs.reduce((acc, f) => {
+          if (!acc[f.date]) acc[f.date] = [];
+          acc[f.date].push(f);
+          return acc;
+        }, {})
+      ).sort(([a],[b]) => b.localeCompare(a))
+       .map(([date, meals]) => `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px">${date}</div>
+          ${meals.map(f => `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+              <span style="font-size:11px;background:var(--surf);padding:2px 8px;border-radius:8px;white-space:nowrap">${MEAL_LABEL[f.mealType]||f.mealType}</span>
+              <span style="font-size:13px;flex:1;min-width:100px">${f.meal}</span>
+              <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+                <span style="font-size:11px;color:var(--amber);font-family:'JetBrains Mono',monospace">${f.calories}kcal</span>
+                ${f.score ? `<span style="font-size:12px;font-weight:700;color:${scoreColor(f.score)}">${f.score}点</span>` : ''}
+                <button onclick="dDeleteFoodLog(${f.id})" style="background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:0 2px;line-height:1">×</button>
+              </div>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>
+  </div>` : ''}`;
+}
+
+function dBulkSaveWeight() {
+  const txt = document.getElementById('dw-text')?.value.trim();
+  if (!txt) { toast('体重を入力してください', 'var(--amber)'); return; }
+
+  const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
+  const added = [];
+  const failed = [];
+
+  for (const line of lines) {
+    // 日付パターン: YYYY年MM月DD日 / YYYY/MM/DD / MM月DD日 / MM/DD
+    const dateM = line.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/) ||
+                  line.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/) ||
+                  line.match(/(\d{1,2})月(\d{1,2})日/) ||
+                  line.match(/(\d{1,2})[\/\-](\d{1,2})/);
+    // 体重パターン: 数値（小数点あり可）kg省略可
+    const weightM = line.match(/(\d{2,3}(?:\.\d{1,2})?)\s*kg?/i) || line.match(/体重\s*(\d{2,3}(?:\.\d{1,2})?)/);
+
+    if (!weightM) { failed.push(line); continue; }
+    const weight = parseFloat(weightM[1]);
+    if (weight < 20 || weight > 300) { failed.push(line); continue; }
+
+    let date = TODAY;
+    if (dateM) {
+      // YYYY年MM月DD日 or YYYY/MM/DD → groups [1]=年, [2]=月, [3]=日
+      if (dateM[0].includes('年') || /^\d{4}[\/\-]/.test(dateM[0])) {
+        date = `${dateM[1]}-${dateM[2].padStart(2,'0')}-${dateM[3].padStart(2,'0')}`;
+      }
+      // MM月DD日 or MM/DD → groups [1]=月, [2]=日、年は2026固定
+      else {
+        date = `2026-${dateM[1].padStart(2,'0')}-${dateM[2].padStart(2,'0')}`;
+      }
+    }
+
+    // 同日があれば上書き
+    STATE.weightLogs = STATE.weightLogs.filter(w => w.date !== date);
+    STATE.weightLogs.push({ id: nid(), date, weight });
+    added.push({ date, weight });
+  }
+
+  if (added.length) {
+    // 最新体重をプロフィールに反映
+    const latest = [...STATE.weightLogs].sort((a,b) => b.date.localeCompare(a.date))[0];
+    if (latest) STATE.profile.cw = latest.weight;
+    saveState();
+    toast(`✓ ${added.length}件の体重を記録しました`);
+  }
+
+  const resultEl = document.getElementById('dw-result');
+  if (resultEl) resultEl.innerHTML = `
+    <div style="margin-top:10px;background:var(--green-bg);border:1px solid rgba(93,184,122,.3);border-radius:8px;padding:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px">✓ ${added.length}件追加</div>
+      ${added.sort((a,b)=>a.date.localeCompare(b.date)).map(w =>
+        `<div style="font-size:12px;display:flex;justify-content:space-between;padding:2px 0">
+          <span style="color:var(--muted)">${w.date}</span>
+          <span class="mono" style="color:var(--green);font-weight:700">${w.weight}kg</span>
+        </div>`).join('')}
+      ${failed.length ? `<div style="font-size:11px;color:var(--red);margin-top:6px">解析できなかった行: ${failed.length}件</div>` : ''}
+    </div>`;
+
+  if (added.length) {
+    const ta = document.getElementById('dw-text');
+    if (ta) ta.value = '';
+    // グラフに移動してすぐ反映を確認できるようにする
+    setTimeout(() => {
+      const el = document.getElementById('dw-result');
+      if (el) el.innerHTML += `<button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%" onclick="dSub('グラフ')">📊 グラフで確認する →</button>`;
+    }, 100);
+  }
+}
+
+async function dBulkAnalyze() {
+  const txt = document.getElementById('db-text')?.value.trim();
+  if (!txt) { toast('テキストを入力してください', 'var(--amber)'); return; }
+
+  // ── STEP1: ローカルパーサーで行を解析 ──
+  // 対応形式: "3/19 朝:残りカレー" / "3月22日　朝：トースト" / "2026/02/13 昼:ラーメン"
+  const MEAL_MAP = {
+    '朝': 'breakfast', '朝食': 'breakfast',
+    '昼': 'lunch', '昼食': 'lunch',
+    '夜': 'dinner', '夕': 'dinner', '夕食': 'dinner', '夜食': 'dinner',
+    '間食': 'snack', 'おやつ': 'snack',
+  };
+
+  function parseLine(line) {
+    // タブ・全角スペースを半角スペースに正規化
+    const l = line.replace(/[\t\u3000\u00a0]+/g, ' ').trim();
+    if (!l) return null;
+
+    // 日付抽出: YYYY/MM/DD, YYYY-MM-DD, M/D, M月D日
+    let date = TODAY;
+    let rest = l;
+    const d1 = l.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    const d2 = l.match(/^(\d{1,2})月(\d{1,2})日/);
+    const d3 = l.match(/^(\d{1,2})[\/\-](\d{1,2})/);
+    if (d1) {
+      date = d1[1] + '-' + d1[2].padStart(2,'0') + '-' + d1[3].padStart(2,'0');
+      rest = l.slice(d1[0].length).trim();
+    } else if (d2) {
+      date = '2026-' + d2[1].padStart(2,'0') + '-' + d2[2].padStart(2,'0');
+      rest = l.slice(d2[0].length).trim();
+    } else if (d3) {
+      date = '2026-' + d3[1].padStart(2,'0') + '-' + d3[2].padStart(2,'0');
+      rest = l.slice(d3[0].length).trim();
+    }
+
+    // 食事区分抽出: "朝:" / "朝食：" / "昼 " など（コロン有無・全角半角問わず）
+    let mealType = 'lunch';
+    let meal = rest;
+    const mealMatch = rest.match(/^(朝食|夕食|夜食|昼食|間食|おやつ|朝|昼|夜|夕)[:\：\s]*/);
+    if (mealMatch) {
+      mealType = MEAL_MAP[mealMatch[1]] || 'lunch';
+      meal = rest.slice(mealMatch[0].length).trim();
+    }
+
+    if (!meal) return null;
+    return { date, mealType, meal };
+  }
+
+  const rawLines = txt.split('\n').filter(l => l.trim() && !l.trim().startsWith('//'));
+  const parsed = rawLines.map(parseLine).filter(Boolean);
+
+  if (!parsed.length) {
+    document.getElementById('db-result').innerHTML = `
+      <div class="alert alert-red" style="margin-top:12px">
+        <div style="font-weight:700;margin-bottom:4px">⚠ 解析できませんでした</div>
+        <div style="font-size:12px">「3/19 朝:残りカレー」のような形式で入力してください。</div>
+      </div>`;
+    return;
+  }
+
+  const btn = document.getElementById('db-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 栄養計算中…'; }
+
+  // プログレス表示
+  const CHUNK = 10;
+  const chunks = [];
+  for (let i = 0; i < parsed.length; i += CHUNK) chunks.push(parsed.slice(i, i+CHUNK));
+
+  document.getElementById('db-result').innerHTML = `
+    <div class="card" style="margin-top:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">🥗 ${parsed.length}食分の栄養を計算中…</div>
+      <div style="background:var(--border);border-radius:4px;height:6px">
+        <div id="db-bar" style="background:var(--green);height:100%;width:0%;border-radius:4px;transition:width .3s"></div>
+      </div>
+      <div id="db-prog-txt" style="font-size:11px;color:var(--muted);margin-top:6px">0 / ${chunks.length} チャンク完了</div>
+    </div>`;
+
+  // ── STEP2: AIに栄養計算だけ依頼 ──
+  const pr = STATE.profile;
+  const sys = `栄養士。食事リストの各項目に栄養素を付けてJSON配列で返せ。説明不要。コードブロック不要。
+入力: [{"id":N,"meal":"食事内容"}]
+出力: [{"id":N,"calories":数値,"protein":数値,"carbs":数値,"fat":数値,"fiber":数値,"score":1〜100整数,"feedback":"評価20字以内"}]
+目標体重${pr.tw}kgに向けた採点。全件返せ。`;
+
+  let nutritionMap = {};
+  for (let i = 0; i < chunks.length; i++) {
+    const bar = document.getElementById('db-bar');
+    const ptxt = document.getElementById('db-prog-txt');
+    if (bar) bar.style.width = Math.round(((i+1)/chunks.length)*100) + '%';
+    if (ptxt) ptxt.textContent = (i+1) + ' / ' + chunks.length + ' チャンク完了';
+
+    const input = JSON.stringify(chunks[i].map((item, j) => ({ id: i * CHUNK + j, meal: item.meal })));
+    const raw = await ai(sys, input, 3000);
+    if (raw) {
+      // JSON配列を確実に抽出（貪欲マッチ）
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (match) {
+        const result = pj(match[0]);
+        if (Array.isArray(result)) {
+          result.forEach(r => { if (r.id !== undefined) nutritionMap[r.id] = r; });
+        }
+      }
+    }
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 250));
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '🤖 AI解析して記録する'; }
+
+  // ── STEP3: ローカル解析結果 + AI栄養データを結合 ──
+  const allParsed = parsed.map((item, idx) => {
+    const nut = nutritionMap[idx] || {};
+    return {
+      date: item.date,
+      mealType: item.mealType,
+      meal: item.meal,
+      calories: nut.calories || 400,
+      protein:  nut.protein  || 15,
+      carbs:    nut.carbs    || 50,
+      fat:      nut.fat      || 12,
+      fiber:    nut.fiber    || 3,
+      score:    nut.score    || 60,
+      feedback: nut.feedback || '',
+    };
+  });
+
+  // ── STEP4: プレビュー表示 ──
+  const MEAL_JP = { breakfast:'🌅 朝食', lunch:'☀️ 昼食', dinner:'🌙 夕食', snack:'🍪 間食' };
+  const rows = allParsed.map(f =>
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--border)">' +
+    '<span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:58px">' + f.date + '</span>' +
+    '<span style="font-size:11px;background:var(--surf);padding:2px 8px;border-radius:8px;white-space:nowrap">' + (MEAL_JP[f.mealType]||f.mealType) + '</span>' +
+    '<span style="font-size:13px;flex:1;min-width:100px">' + f.meal + '</span>' +
+    '<span style="font-family:\'JetBrains Mono\',monospace;font-size:12px;color:var(--amber);white-space:nowrap">' + f.calories + 'kcal</span>' +
+    '<span style="font-weight:700;font-size:13px;color:' + scoreColor(f.score) + ';white-space:nowrap">' + f.score + '点</span>' +
+    '</div>'
+  ).join('');
+
+  const totalCal = allParsed.reduce((s,f) => s + (f.calories||0), 0);
+  const avgScore = Math.round(allParsed.reduce((s,f) => s + (f.score||60), 0) / allParsed.length);
+  const savedData = JSON.stringify(allParsed).replace(/"/g, '&quot;');
+
+  document.getElementById('db-result').innerHTML =
+    '<div class="card" style="margin-top:12px;border-color:var(--green)55">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">' +
+    '<div>' +
+    '<div style="font-weight:700;font-size:14px">' + allParsed.length + '食分を解析（入力 ' + rawLines.length + '行）</div>' +
+    '<div style="font-size:11px;color:var(--green);margin-top:2px">✓ 内容を確認して保存してください</div>' +
+    '</div>' +
+    '<div style="text-align:right">' +
+    '<div style="font-size:11px;color:var(--muted)">合計カロリー</div>' +
+    '<div style="font-size:16px;font-weight:700;color:var(--amber);font-family:\'JetBrains Mono\',monospace">' + totalCal.toLocaleString() + 'kcal</div>' +
+    '<div style="font-size:11px;color:var(--muted)">平均スコア <span style="color:' + scoreColor(avgScore) + ';font-weight:700">' + avgScore + '点</span></div>' +
+    '</div></div>' +
+    '<div style="max-height:360px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:0 8px">' + rows + '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">' +
+    '<button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'db-result\').innerHTML=\'\';document.getElementById(\'db-text\').focus()">✎ 修正する</button>' +
+    '<button class="btn btn-green" style="flex:1" onclick="dBulkSaveFoods(\'' + savedData + '\')">' +
+    '✓ ' + allParsed.length + '食分を保存する</button></div></div>';
+}
+
+function dBulkSaveFoods(parsed) {
+  if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+  const items = parsed.filter(f => f.meal && f.calories >= 0).map(f => ({ ...f, id: nid() }));
+  if (!items.length) return;
+  // 既存の同日同食タイプを上書きしないよう追記
+  STATE.foodLogs = [...STATE.foodLogs, ...items];
+  saveState();
+  toast(`✓ ${items.length}食分を保存しました`);
+  const ta = document.getElementById('db-text');
+  if (ta) ta.value = '';
+  dSub('まとめて記録');
+}
+
+function dDeleteFoodLog(id) {
+  STATE.foodLogs = STATE.foodLogs.filter(f => f.id !== id);
+  saveState();
+  dSub('まとめて記録');
+}
+
+// ── Today view ──
+const MEALS = [
+  {key:'breakfast', label:'朝食',  icon:'🌅'},
+  {key:'lunch',     label:'昼食',  icon:'☀️'},
+  {key:'dinner',    label:'夕食',  icon:'🌙'},
+  {key:'snack',     label:'おやつ・夜食・その他', icon:'🍪'},
+];
+
+function dTodayHTML() {
+  const todayLogs = STATE.foodLogs.filter(f=>f.date===TODAY);
+  const totalCal = todayLogs.reduce((s,f)=>s+f.calories,0);
+  const avgScore = todayLogs.length ? Math.round(todayLogs.reduce((s,f)=>s+f.score,0)/todayLogs.length) : null;
+  const targetCal = Math.round((STATE.profile.cw||60) * 25);
+  const calPct = clamp((totalCal/targetCal)*100,0,100);
+  const todayWeight = STATE.weightLogs.find(w => w.date === TODAY);
+
+  // 前日比計算
+  let diffStr = '';
+  if (todayWeight && STATE.weightLogs.length > 1) {
+    const sorted = [...STATE.weightLogs].sort((a,b)=>b.date.localeCompare(a.date));
+    const prev = sorted.find(w=>w.date!==TODAY);
+    if (prev) {
+      const diff = (todayWeight.weight - prev.weight).toFixed(1);
+      const col = parseFloat(diff) < 0 ? 'var(--green)' : parseFloat(diff) > 0 ? 'var(--red)' : 'var(--muted)';
+      diffStr = `<span style="font-size:13px;font-weight:700;color:${col}">${parseFloat(diff)>0?'+':''}${diff}kg</span>`;
+    }
+  }
+
+  // カロリーバー（食事記録ある場合のみ）
+  const dayBar = todayLogs.length ? `
+    <div class="day-total">
+      <div style="flex:1;min-width:150px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">本日のカロリー / 目標 ${targetCal}kcal</div>
+        <div style="font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--amber)">${totalCal}<span style="font-size:12px;font-weight:400"> kcal</span></div>
+        <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${calPct}%;background:${calPct>120?'var(--red)':calPct>90?'var(--amber)':'var(--green)'}"></div></div>
+      </div>
+      ${avgScore!==null ? ring(avgScore, 60) : ''}
+    </div>` : '';
+
+  // 体重カード（常に表示）
+  const weightCard = `
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:3px">⚖️ 本日の体重</div>
+          ${todayWeight
+            ? `<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+                <span class="mono" style="font-size:28px;font-weight:800;color:var(--green)">${todayWeight.weight}<span style="font-size:13px;font-weight:400;color:var(--muted)"> kg</span></span>
+                ${diffStr}
+               </div>`
+            : `<div style="font-size:12px;color:var(--dim)">まだ未記録</div>`}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <input type="number" id="today-weight-input" step="0.1" min="20" max="300"
+            value="${todayWeight ? todayWeight.weight : ''}"
+            placeholder="例: 68.5"
+            style="width:100px;text-align:center;font-size:16px;font-weight:700;padding:9px 10px"
+            onkeydown="if(event.key==='Enter')saveTodayWeight()">
+          <button class="btn btn-green btn-sm" onclick="saveTodayWeight()">記録</button>
+        </div>
+      </div>
+    </div>`;
+
+  // 食事カード生成
+  const mealCards = MEALS.map(m => {
+    const log = todayLogs.find(f => f.mealType === m.key);
+    const isSnack = m.key === 'snack';
+    return `<div class="meal-card ${log?.score?'has-score':''}" id="mc-${m.key}" ${isSnack?'style="grid-column:1/-1"':''}>
+      <div class="mc-hdr">
+        <div class="mc-title"><span class="mc-icon">${m.icon}</span>${m.label}</div>
+        ${log ? ring(log.score,44) : ''}
+      </div>
+      ${isSnack ? '' : `
+      <div class="photo-area" id="pa-${m.key}" onclick="triggerPhoto('${m.key}')">
+        <input type="file" accept="image/*" capture="environment" id="pf-${m.key}" onchange="onPhoto('${m.key}',this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+        ${log?.photo
+          ? `<img class="pa-img" src="${log.photo}" alt="食事写真"><div class="pa-overlay"><span>📷 変更</span></div>`
+          : `<div class="pa-inner"><span style="font-size:22px">📷</span><span style="font-size:11px;color:var(--muted)">写真を追加</span></div>`}
+      </div>`}
+      ${log ? `
+        <div style="background:var(--surf);border-radius:8px;padding:10px${isSnack?';display:flex;gap:12px;align-items:flex-start':''}">
+          <div style="${isSnack?'flex:1':''}">
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px">${log.meal}</div>
+            <div class="nut-row">
+              <div class="nut-badge"><div class="nb-l">Cal</div><div class="nb-v" style="color:var(--amber)">${log.calories}</div></div>
+              <div class="nut-badge"><div class="nb-l">P(g)</div><div class="nb-v" style="color:var(--blue)">${log.protein}</div></div>
+              <div class="nut-badge"><div class="nb-l">C(g)</div><div class="nb-v" style="color:var(--amber)">${log.carbs}</div></div>
+              <div class="nut-badge"><div class="nb-l">F(g)</div><div class="nb-v" style="color:var(--red)">${log.fat}</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">${log.feedback}</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%" onclick="dEditMeal('${m.key}')">✎ 編集</button>
+      ` : `
+        <textarea id="mt-${m.key}" placeholder="${isSnack ? 'おやつ・夜食・間食など（例: チョコ1個・コーヒー）' : '食べたものを記入\n例: ご飯・味噌汁・焼き魚・卵焼き'}" style="min-height:${isSnack?'52':'68'}px;font-size:12px"></textarea>
+        <button class="btn btn-green btn-sm" style="width:100%" onclick="dAnalyzeMeal('${m.key}','${m.label}')">🤖 栄養分析 & 採点</button>
+      `}
+    </div>`;
+  }).join('');
+
+  // 食事記録なし時のプロンプト
+  const emptyPrompt = !todayLogs.length ? `
+    <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">
+      朝・昼・夜の食事を記録してスコアをもらいましょう 🍽️
+    </div>` : '';
+
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:20px;font-weight:900">${TODAY.slice(5).replace('-','/')}</div>
+        <div style="font-size:11px;color:var(--muted)">今日の食事・体重記録</div>
+      </div>
+    </div>
+    ${dayBar}
+    ${weightCard}
+    <div class="meal-grid">${mealCards}</div>
+  `;
+}
+
+
+function saveTodayWeight() {
+  const val = parseFloat(document.getElementById('today-weight-input')?.value);
+  if (!val || val < 20 || val > 300) { toast('正しい体重を入力してください', 'var(--red)'); return; }
+  STATE.weightLogs = STATE.weightLogs.filter(w => w.date !== TODAY);
+  STATE.weightLogs.push({ id: nid(), date: TODAY, weight: val });
+  STATE.profile.cw = val;
+  saveState();
+  toast(`✓ 体重 ${val}kg を記録しました`);
+  dSub('今日');
+}
+
+function triggerPhoto(key) {
+  document.getElementById('pf-'+key).click();
+}
+function onPhoto(key, input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const existing = STATE.foodLogs.find(f=>f.date===TODAY&&f.mealType===key);
+    if(existing) { existing.photo = e.target.result; renderDiet(); }
+    else {
+      // store pending photo, re-render to show it in preview
+      STATE._pendingPhotos = STATE._pendingPhotos||{};
+      STATE._pendingPhotos[key] = e.target.result;
+      // update photo-area manually
+      const pa = document.getElementById('pa-'+key);
+      if(pa) pa.innerHTML = `
+        <img class="pa-img" src="${e.target.result}" alt="食事写真">
+        <div class="pa-overlay"><span>📷 変更</span></div>
+        <input type="file" accept="image/*" capture="environment" id="pf-${key}" onchange="onPhoto('${key}',this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">`;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+function dEditMeal(key) {
+  STATE.foodLogs = STATE.foodLogs.filter(f=>!(f.date===TODAY&&f.mealType===key));
+  saveState();
+  renderDiet();
+}
+
+function saveMealLog(key, d) {
+  const photo = STATE._pendingPhotos?.[key] || null;
+  STATE.foodLogs = STATE.foodLogs.filter(f=>!(f.date===TODAY&&f.mealType===key));
+  STATE.foodLogs.push({id:nid(), date:TODAY, mealType:key, ...d, photo});
+  if(STATE._pendingPhotos) delete STATE._pendingPhotos[key];
+  saveState();
+  renderDiet();
+  const MEAL_JP = {breakfast:'朝食',lunch:'昼食',dinner:'夕食',snack:'間食'};
+  toast(`${MEAL_JP[key]||key}: ${d.score}点 / ${d.calories}kcal`);
+}
+
+// ── Diet Recipe (shared with Kakeibo) ──
+function dRecipeHTML() {
+  const recipes = STATE.recipes;
+  return `<div class="card">
+    <div class="sec">レシピ栄養チェック</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      家計簿タブのレシピと連携しています。新しいレシピを直接追加したり、保存済みレシピの栄養素を分析できます。
+    </p>
+    <!-- Quick add from diet side -->
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">レシピ名で栄養素を直接調べる</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="text" id="dr-q" placeholder="例: 豚キムチ、親子丼、グリルチキン" style="flex:1;min-width:140px" onkeydown="if(event.key==='Enter')dQuickNutrition()">
+        <input type="number" id="dr-servings" value="1" min="1" max="10" style="width:60px;text-align:center" title="人数">
+        <button class="btn btn-green" onclick="dQuickNutrition()" id="dr-btn">🥗 栄養分析</button>
+      </div>
+    </div>
+  </div>
+  <div id="dr-result"></div>
+  ${recipes.length===0 ? `
+    <div class="card" style="margin-top:12px;text-align:center;padding:28px 16px">
+      <div style="font-size:32px;margin-bottom:8px">🍳</div>
+      <div style="font-size:13px;color:var(--muted)">保存済みレシピはまだありません</div>
+      <div style="font-size:12px;color:var(--dim);margin-top:4px">家計簿 → レシピタブから追加できます</div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="switchTab('k');setTimeout(()=>{STATE.kSub='レシピ';renderKakeibo()},50)">💰 家計簿のレシピへ</button>
+    </div>` : `
+  <div class="card" style="margin-top:12px">
+    <div class="sec">保存済みレシピ (${recipes.length}件)</div>
+    ${recipes.map(r => {
+      const n = r.nutrition;
+      return `<div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;background:var(--surf)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <div style="font-size:14px;font-weight:700">${r.name}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">${r.servings}人前 / 一食 <span class="mono" style="color:var(--amber)">${fmt(r.costPerServing)}</span></div>
+          </div>
+          ${n ? ring(n.score||70, 46) : `<button class="btn btn-green btn-sm" onclick="dAnalyzeRecipeNutrition(${r.id})">🥗 栄養分析</button>`}
+        </div>
+        <!-- Ingredients mini list -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:${n?'10px':'0'}">
+          ${r.ingredients.slice(0,5).map(i=>`<span style="background:var(--card);border:1px solid var(--border);padding:2px 8px;border-radius:10px;font-size:11px">${i.name}</span>`).join('')}
+          ${r.ingredients.length>5?`<span style="font-size:11px;color:var(--muted);align-self:center">+${r.ingredients.length-5}</span>`:''}
+        </div>
+        <!-- Nutrition panel (shown after analysis) -->
+        ${n ? `
+        <div style="background:var(--card);border-radius:8px;padding:10px">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">一食あたりの栄養素</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
+            ${[['Cal','calories','var(--amber)'],['P','protein','var(--blue)'],['C','carbs','var(--amber)'],['F','fat','var(--red)'],['食繊','fiber','var(--green)']].map(([l,k,c])=>`
+              <div class="nut-badge">
+                <div class="nb-l">${l}</div>
+                <div class="nb-v" style="color:${c}">${n[k]||0}${l==='Cal'?'':l==='食繊'?'g':'g'}</div>
+              </div>`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.6">${n.feedback||''}</div>
+          ${n.highlights?.length?`<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">${n.highlights.map(h=>`<span class="tag" style="background:rgba(93,184,122,.2);color:var(--green)">✓ ${h}</span>`).join('')}</div>`:''}
+          ${n.concerns?.length?`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${n.concerns.map(c=>`<span class="tag" style="background:rgba(224,89,89,.2);color:var(--red)">⚠ ${c}</span>`).join('')}</div>`:''}
+        </div>` : ''}
+      </div>`;
+    }).join('')}
+  </div>`}`;
+}
+async function dAnalyzeRecipeNutrition(rid) {
+  const recipe = STATE.recipes.find(r=>r.id===rid); if(!recipe) return;
+  loading(true);
+  const pr = STATE.profile;
+  const ings = recipe.ingredients.map(i=>i.name).join('、');
+  const sys = `栄養士として料理を分析。JSONのみ:{"calories":数値,"protein":数値,"carbs":数値,"fat":数値,"fiber":数値,"score":1から100整数,"feedback":"栄養評価80字","highlights":["良い点"],"concerns":["懸念点"]}
+目標体重${pr.tw}kg、現在${pr.cw}kg。一食あたりの栄養素を推定せよ。`;
+  const r = await ai(sys, `料理「${recipe.name}」(材料: ${ings})の一人前の栄養素を推定してください。`);
+  loading(false);
+  const n = pj(r);
+  if(n) { recipe.nutrition = n; saveState(); dSub('レシピ'); toast('栄養素を分析しました'); }
+}
+async function dQuickNutrition() {
+  const q = document.getElementById('dr-q').value.trim(); if(!q) return;
+  const servings = parseInt(document.getElementById('dr-servings').value)||1;
+  document.getElementById('dr-btn').disabled=true; loading(true);
+  const pr = STATE.profile;
+  const sys = `栄養士。JSONのみ:{"meal":"料理名","calories":数値,"protein":数値,"carbs":数値,"fat":数値,"fiber":数値,"score":1から100整数,"feedback":"評価80字","highlights":["良い点"],"concerns":["懸念点"]}
+目標体重${pr.tw}kg。${servings}人前の合計ではなく1人前の数値を返せ。`;
+  const r = await ai(sys, `「${q}」一人前の栄養素を推定`);
+  loading(false); document.getElementById('dr-btn').disabled=false;
+  const n = pj(r)||{meal:q,calories:0,protein:0,carbs:0,fat:0,fiber:0,score:60,feedback:r,highlights:[],concerns:[]};
+  const sc = scoreColor(n.score);
+  document.getElementById('dr-result').innerHTML = `
+    <div class="card" style="margin-top:12px;border-color:${n.score>=80?'var(--green)':n.score>=60?'var(--amber)':'var(--red)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div><div style="font-size:15px;font-weight:700">${n.meal}</div><div style="font-size:11px;color:var(--muted)">1人前あたり</div></div>
+        ${ring(n.score, 54)}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px">
+        ${[['Cal',n.calories,'var(--amber)'],['P(g)',n.protein,'var(--blue)'],['C(g)',n.carbs,'var(--amber)'],['F(g)',n.fat,'var(--red)'],['食繊(g)',n.fiber,'var(--green)']].map(([l,v,c])=>`
+          <div class="nut-badge"><div class="nb-l">${l}</div><div class="nb-v" style="color:${c}">${v}</div></div>`).join('')}
+      </div>
+      <div style="background:${n.score>=80?'var(--green-bg)':n.score>=60?'var(--amber-bg)':'var(--red-bg)'};border-radius:8px;padding:10px;margin-bottom:10px">
+        <p style="font-size:13px;line-height:1.7">${n.feedback}</p>
+        <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">
+          ${(n.highlights||[]).map(h=>`<span class="tag" style="background:rgba(93,184,122,.2);color:var(--green)">✓ ${h}</span>`).join('')}
+          ${(n.concerns||[]).map(c=>`<span class="tag" style="background:rgba(224,89,89,.2);color:var(--red)">⚠ ${c}</span>`).join('')}
+        </div>
+      </div>
+      <button class="btn btn-green btn-sm" style="width:100%" onclick="dSaveQuickRecipe('${n.meal.replace(/'/g,"\\'")}',${JSON.stringify(n).replace(/"/g,'&quot;')})">📌 このレシピを保存</button>
+    </div>`;
+}
+function dSaveQuickRecipe(name, nutrition) {
+  if(typeof nutrition==='string') nutrition=JSON.parse(nutrition);
+  STATE.recipes.push({id:nid(),name,ingredients:[],servings:1,totalCost:0,costPerServing:0,nutrition,createdAt:TODAY});
+  saveState();
+  toast('📌 レシピを保存しました');
+  dSub('レシピ');
+}
+
+// ── Train ──
+function dTrainHTML() {
+  const today = STATE.trainLogs.filter(t=>t.date===TODAY);
+  const exRows = (STATE._trainExs||[{name:'',sets:'',reps:'',dur:''}]).map((ex,i)=>`
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;flex:1">
+        <input type="text" value="${ex.name}" oninput="updTrainEx(${i},'name',this.value)" placeholder="スクワット" style="font-size:12px">
+        <input type="number" value="${ex.sets}" oninput="updTrainEx(${i},'sets',this.value)" placeholder="3" style="font-size:12px">
+        <input type="number" value="${ex.reps}" oninput="updTrainEx(${i},'reps',this.value)" placeholder="12" style="font-size:12px">
+        <input type="number" value="${ex.dur}" oninput="updTrainEx(${i},'dur',this.value)" placeholder="15" style="font-size:12px">
+      </div>
+      ${i>0?`<button onclick="removeTrainEx(${i})" style="background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:18px;padding:0 4px">×</button>`:''}
+    </div>`).join('');
+  const hist = today.map(t=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--muted)">${t.date}</span>
+        <span style="font-size:15px;font-weight:700;color:${scoreColor(t.score)}">${t.score}点</span>
+      </div>
+      <div style="font-size:12px">${t.exercises.map(e=>`${e.name} ${e.sets}×${e.reps}回`).join(' · ')}</div>
+      <div style="font-size:11px;color:var(--amber);margin-top:2px">消費: 約${t.burned}kcal</div>
+      ${t.feedback?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${t.feedback}</div>`:''}
+    </div>`).join('');
+  return `<div class="card">
+    <div class="sec">トレーニング記録</div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:6px;margin-bottom:4px">
+      ${['種目名','セット','回数','分'].map(h=>`<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">${h}</div>`).join('')}
+    </div>
+    ${exRows}
+    <button class="btn btn-ghost btn-sm" onclick="addTrainEx()" style="margin-bottom:12px">+ 種目追加</button>
+    <textarea id="train-note" placeholder="メモ（体調・感想）" style="min-height:52px;font-size:12px;margin-bottom:10px"></textarea>
+    <button class="btn btn-green" onclick="dSaveTrain()" id="train-btn">💪 記録 & AI評価</button>
+  </div>
+  ${today.length ? `<div class="card" style="margin-top:12px"><div class="sec">本日の記録</div>${hist}</div>` : ''}`;
+}
+function updTrainEx(i,f,v) { if(!STATE._trainExs)STATE._trainExs=[{name:'',sets:'',reps:'',dur:''}]; STATE._trainExs[i][f]=v; }
+function addTrainEx() { STATE._trainExs=STATE._trainExs||[{name:'',sets:'',reps:'',dur:''}]; STATE._trainExs.push({name:'',sets:'',reps:'',dur:''}); dSub('運動'); }
+function removeTrainEx(i) { STATE._trainExs.splice(i,1); dSub('運動'); }
+async function dSaveTrain() {
+  const exs = (STATE._trainExs||[]).filter(e=>e.name.trim()); if(!exs.length)return;
+  loading(true);
+  const desc = exs.map(e=>`${e.name} ${e.sets}セット×${e.reps}回 ${e.dur}分`).join(', ');
+  const sys = `フィットネストレーナー。JSONのみ:{"score":整数,"feedback":"評価80字以内","burned":推定消費カロリー整数}`;
+  const r = await ai(sys, `本日のトレーニング: ${desc}`);
+  loading(false);
+  const d = pj(r)||{score:70,feedback:r,burned:200};
+  const note = document.getElementById('train-note')?.value||'';
+  STATE.trainLogs.push({id:nid(),date:TODAY,exercises:exs,note,...d});
+  STATE._trainExs = [{name:'',sets:'',reps:'',dur:''}];
+  saveState();
+  dSub('運動');
+  toast(`トレーニング: ${d.score}点！`);
+}
+
+// ── Charts ──
+function dChartsHTML() {
+  const allDates = [...new Set([
+    ...STATE.weightLogs.map(w => w.date),
+    ...STATE.foodLogs.map(f => f.date)
+  ])].sort((a,b) => b.localeCompare(a));
+
+  const wByDate = STATE.weightLogs.reduce((a,w) => ({...a,[w.date]:w.weight}), {});
+  const fByDate = STATE.foodLogs.reduce((a,f) => { if(!a[f.date])a[f.date]=[]; a[f.date].push(f); return a; }, {});
+  const MEAL_JP = {breakfast:'🌅朝',lunch:'☀️昼',dinner:'🌙夜',snack:'🍪間食'};
+
+  const timelineRows = allDates.map((date, i) => {
+    const weight = wByDate[date];
+    const prevDate = allDates.slice(i+1).find(d => wByDate[d]);
+    const prevWeight = prevDate ? wByDate[prevDate] : null;
+    const diff = (weight && prevWeight) ? (weight - prevWeight).toFixed(1) : null;
+    const diffColor = diff === null ? '' : parseFloat(diff) < 0 ? 'var(--green)' : parseFloat(diff) > 0 ? 'var(--red)' : 'var(--muted)';
+    const diffStr = diff === null ? '' : (parseFloat(diff) > 0 ? '+' : '') + diff + 'kg';
+    const meals = fByDate[date] || [];
+    const dayCalories = meals.reduce((s,f) => s + (f.calories||0), 0);
+    const avgScore = meals.length ? Math.round(meals.reduce((s,f)=>s+(f.score||0),0)/meals.length) : null;
+    return `
+    <div style="display:flex;gap:0;position:relative">
+      <div style="display:flex;flex-direction:column;align-items:center;width:36px;flex-shrink:0">
+        <div style="width:10px;height:10px;border-radius:50%;background:${weight?'var(--green)':'var(--border2)'};border:2px solid ${weight?'var(--green)':'var(--border)'};flex-shrink:0;margin-top:14px;z-index:1"></div>
+        <div style="width:2px;flex:1;background:var(--border);margin-top:2px;min-height:20px"></div>
+      </div>
+      <div style="flex:1;padding:10px 0 14px 8px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+          <div style="font-size:13px;font-weight:800">${date.slice(5).replace('-','/')}</div>
+          ${weight ? `<div style="display:flex;align-items:baseline;gap:4px">
+            <span class="mono" style="font-size:16px;font-weight:700;color:var(--green)">${weight}<span style="font-size:10px">kg</span></span>
+            ${diffStr ? `<span style="font-size:11px;font-weight:700;color:${diffColor}">${diffStr}</span>` : ''}
+          </div>` : '<span style="font-size:11px;color:var(--dim)">体重未記録</span>'}
+          ${dayCalories > 0 ? `<span style="font-size:11px;color:var(--amber);font-family:monospace">${dayCalories.toLocaleString()}kcal</span>` : ''}
+          ${avgScore !== null ? `<span style="font-size:11px;font-weight:700;color:${scoreColor(avgScore)}">${avgScore}点</span>` : ''}
+        </div>
+        ${meals.length ? `<div style="display:flex;flex-direction:column;gap:3px">
+          ${meals.map(f => `<div style="display:flex;gap:6px;align-items:flex-start;background:var(--surf);border-radius:7px;padding:5px 10px">
+            <span style="font-size:11px;color:var(--muted);white-space:nowrap;min-width:34px;margin-top:1px">${MEAL_JP[f.mealType]||f.mealType}</span>
+            <span style="font-size:12px;flex:1;line-height:1.5">${f.meal}</span>
+            <div style="display:flex;gap:5px;align-items:center;flex-shrink:0">
+              <span style="font-size:11px;color:var(--amber);white-space:nowrap">${f.calories}kcal</span>
+              ${f.score ? `<span style="font-size:11px;font-weight:700;color:${scoreColor(f.score)}">${f.score}点</span>` : ''}
+            </div>
+          </div>`).join('')}
+        </div>` : `<div style="font-size:11px;color:var(--dim)">食事記録なし</div>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card">
+    <div class="sec">体重 & カロリー推移</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="dc-weight"></canvas></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="sec">食事スコア推移</div>
+    <div class="chart-wrap" style="height:150px"><canvas id="dc-score"></canvas></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="sec" style="margin-bottom:0">食事 × 体重 タイムライン</div>
+      <span style="font-size:11px;color:var(--muted)">${allDates.length}日分</span>
+    </div>
+    ${allDates.length === 0
+      ? '<div style="font-size:13px;color:var(--muted);text-align:center;padding:24px">まだ記録がありません</div>'
+      : `<div style="max-height:600px;overflow-y:auto;padding-right:4px">${timelineRows}</div>`}
+  </div>`;
+}
+
+function drawDCharts() {
+  const opts = {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a746d',font:{size:11},boxWidth:10}},tooltip:{backgroundColor:'#1e1c1a',titleColor:'#ede8df',bodyColor:'#ede8df',borderColor:'#2a2724',borderWidth:1}}};
+  const ax = {ticks:{color:'#7a746d',font:{size:10}},grid:{color:'rgba(42,39,36,.4)'}};
+  const wl = [...STATE.weightLogs].sort((a,b)=>a.date.localeCompare(b.date));
+  const dayCalMap = STATE.foodLogs.reduce((a,f)=>({...a,[f.date]:(a[f.date]||0)+f.calories}),{});
+  const allSortedDates = [...new Set([...wl.map(w=>w.date),...Object.keys(dayCalMap)])].sort();
+  const wByDate = wl.reduce((a,w)=>({...a,[w.date]:w.weight}),{});
+  const dayScoreMap = STATE.foodLogs.reduce((a,f)=>{ if(!a[f.date])a[f.date]={s:0,c:0}; a[f.date].s+=f.score;a[f.date].c++; return a; },{});
+  const dayScores = Object.entries(dayScoreMap).map(([d,v])=>({d:d.slice(5),s:Math.round(v.s/v.c)})).sort((a,b)=>a.d.localeCompare(b.d));
+  ['dw','ds'].forEach(k=>destroyChart(k));
+  if(document.getElementById('dc-weight')) {
+    const labels = allSortedDates.map(d=>d.slice(5));
+    STATE.charts.dw = new Chart(document.getElementById('dc-weight'),{
+      data:{labels,datasets:[
+        {type:'line',label:'体重(kg)',data:allSortedDates.map(d=>wByDate[d]??null),borderColor:'#5db87a',backgroundColor:'rgba(93,184,122,.15)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#5db87a',yAxisID:'y',spanGaps:true},
+        {type:'bar',label:'カロリー',data:allSortedDates.map(d=>dayCalMap[d]??null),backgroundColor:'rgba(232,168,66,.35)',borderWidth:0,yAxisID:'y2'}
+      ]},
+      options:{...opts,scales:{
+        x:ax,
+        y:{...ax,position:'left',ticks:{...ax.ticks,callback:v=>v+'kg'},title:{display:true,text:'体重',color:'#5db87a',font:{size:10}}},
+        y2:{...ax,position:'right',grid:{display:false},ticks:{...ax.ticks,callback:v=>(v/1000).toFixed(1)+'k'},title:{display:true,text:'kcal',color:'#e8a842',font:{size:10}}}
+      }}
+    });
+  }
+  if(document.getElementById('dc-score')) STATE.charts.ds = new Chart(document.getElementById('dc-score'),{type:'line',data:{labels:dayScores.map(d=>d.d),datasets:[{label:'食事スコア',data:dayScores.map(d=>d.s),borderColor:'#e8a842',backgroundColor:'rgba(232,168,66,.1)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#e8a842'}]},options:{...opts,plugins:{...opts.plugins,legend:{display:false}},scales:{x:ax,y:{...ax,min:0,max:100}}}});
+}
+
+// fix typo
+const State = STATE;
+
+// ── App Settings Modal ──
+function openSettings() {
+  document.getElementById('settings-content').innerHTML = appSettingsHTML();
+  document.getElementById('settings-modal-bg').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-modal-bg').classList.remove('show');
+}
+
+function appSettingsHTML() {
+  const saved = (() => { try { const r=localStorage.getItem(STORAGE_KEY); return r?JSON.parse(r):null; } catch{return null;} })();
+  const savedAt = saved?._savedAt ? new Date(saved._savedAt).toLocaleString('ja-JP') : '未保存';
+  const sz = estimateStorageSize();
+  const photoLogs = STATE.foodLogs.filter(f=>f.photo).length;
+  const oldPhotoLogs = STATE.foodLogs.filter(f=>f.photo && isOlderThan(f.date, PHOTO_RETENTION_DAYS)).length;
+
+  return `
+  <!-- Version & sync status -->
+  <div style="background:linear-gradient(135deg,var(--surf) 0%,rgba(93,184,122,.08) 100%);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div>
+        <div style="font-size:13px;font-weight:700">CASH-FIT <span style="color:var(--green);font-family:'JetBrains Mono',monospace">v${APP_VERSION}</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">最終保存: ${savedAt}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div style="display:flex;gap:6px;align-items:center">
+          <div style="width:8px;height:8px;border-radius:50%;background:${FB_CONFIGURED?'var(--green)':'var(--amber)'}"></div>
+          <span style="font-size:11px;color:${FB_CONFIGURED?'var(--green)':'var(--amber)'}">
+            ${FB_CONFIGURED ? '🔄 Firebase同期中' : '💾 ローカル保存のみ'}
+          </span>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center">
+          <span style="font-size:11px;color:var(--muted)">ID:</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber)">${CURRENT_UID||'未ログイン'}</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="closeSettings();logout()">🚪 別のIDでログイン</button>
+  </div>
+
+  <!-- Firebase setup guide -->
+  ${!FB_CONFIGURED ? `
+  <div style="border:1px solid rgba(232,168,66,.4);border-radius:12px;padding:14px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:8px">🔥 Firebase同期を有効にする手順</div>
+    <ol style="font-size:12px;color:var(--muted);line-height:2;padding-left:18px">
+      <li><a href="https://console.firebase.google.com/" target="_blank" style="color:var(--amber)">firebase.google.com</a> でプロジェクトを作成</li>
+      <li>「Realtime Database」を追加 → テストモードで開始</li>
+      <li>プロジェクト設定 → ウェブアプリ追加 → SDK設定を取得</li>
+      <li>このHTMLの <code style="background:var(--surf);padding:2px 5px;border-radius:4px">FIREBASE_CONFIG</code> を書き換え再アップ</li>
+    </ol>
+    <div style="font-size:11px;color:var(--dim);margin-top:6px">無料枠: 同時接続100・1GB/月</div>
+  </div>` : ''}
+
+  <!-- Data stats & storage -->
+  <div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:10px">📊 データ使用量</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      ${[['購買記録',STATE.purchases.length+'件','var(--txt)'],['食事ログ',STATE.foodLogs.length+'件','var(--txt)'],['レシピ',STATE.recipes.length+'件','var(--txt)']].map(([l,v,c])=>`
+        <div style="background:var(--surf);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:9px;color:var(--muted);margin-bottom:3px">${l}</div>
+          <div class="mono" style="font-size:14px;font-weight:700;color:${c}">${v}</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+      ${[['端末保存',sz.totalKB+'KB','var(--txt)'],['Firebase',sz.fbKB+'KB','var(--green)'],['写真',sz.photoKB+'KB','var(--amber)']].map(([l,v,c])=>`
+        <div style="background:var(--surf);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:9px;color:var(--muted);margin-bottom:3px">${l}</div>
+          <div class="mono" style="font-size:14px;font-weight:700;color:${c}">${v}</div>
+        </div>`).join('')}
+    </div>
+    <div style="background:var(--green-bg);border:1px solid rgba(93,184,122,.3);border-radius:8px;padding:10px;font-size:11px;color:var(--muted);line-height:1.8">
+      📷 写真は<strong style="color:var(--txt)">${PHOTO_RETENTION_DAYS}日超</strong>でFirebase・端末から自動削除 /
+      テキスト・スコアは<strong style="color:var(--txt)">永久保持</strong>
+      ${photoLogs > 0 ? `<br>現在 写真あり ${photoLogs}件${oldPhotoLogs>0?` / 次回起動時に${oldPhotoLogs}件削除予定`:''}` : ''}
+    </div>
+  </div>
+
+  <!-- Backup -->
+  <div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;margin-bottom:10px">💾 データ管理</div>
+    <div style="background:var(--amber-bg);border:1px solid rgba(232,168,66,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:11px;color:var(--muted);line-height:1.8">
+      同じブラウザで更新版を開けば<strong style="color:var(--txt)">自動引き継ぎ</strong> /
+      別デバイスへ移行する場合はバックアップをご利用ください
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div style="background:var(--surf);border-radius:10px;padding:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px">📦 エクスポート</div>
+        <button class="btn btn-amber btn-sm" style="width:100%" onclick="exportData()">バックアップ作成</button>
+      </div>
+      <div style="background:var(--surf);border-radius:10px;padding:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;margin-bottom:8px">📥 統合インポート</div>
+        <label class="btn btn-green btn-sm" style="width:100%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
+          データを統合
+          <input type="file" accept=".json" style="display:none" onchange="importData(this,'merge')">
+        </label>
+      </div>
+    </div>
+    <div style="background:var(--surf);border-radius:10px;padding:12px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:700;margin-bottom:2px">🔄 完全復元（上書き）</div>
+        <div style="font-size:11px;color:var(--muted)">バックアップで現在のデータを全て置き換え</div>
+      </div>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer;flex-shrink:0">
+        復元する
+        <input type="file" accept=".json" style="display:none" onchange="importData(this,'overwrite')">
+      </label>
+    </div>
+  </div>
+
+  <!-- Danger zone -->
+  <div style="border-top:1px solid var(--border);padding-top:12px">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">⚠ 危険な操作</div>
+    <button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:rgba(224,89,89,.4)" onclick="resetAllData()">すべてのデータを削除</button>
+  </div>`;
+}
+
+// ── Diet Settings (body & weight only) ──
+function dSettingsHTML() {
+  const wl = [...STATE.weightLogs].sort((a,b)=>b.date.localeCompare(a.date));
+  const pr = STATE.profile;
+  return `
+  <!-- Profile -->
+  <div class="card">
+    <div class="sec">プロフィール設定</div>
+    <div class="grid2" style="margin-bottom:10px">
+      ${[['現在の体重(kg)','cw'],['目標体重(kg)','tw'],['身長(cm)','height'],['年齢','age']].map(([l,f])=>`
+        <div><label class="lbl">${l}</label>
+        <input type="number" value="${pr[f]||''}" oninput="profileSet('${f}',this.value)" step="0.1"></div>`).join('')}
+      <div><label class="lbl">目標達成日</label><input type="date" value="${pr.targetDate||''}" onchange="profileSet('targetDate',this.value)"></div>
+    </div>
+  </div>
+
+  <!-- Weight log -->
+  <div class="card" style="margin-top:12px">
+    <div class="sec">体重を記録</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="flex:1;min-width:120px"><label class="lbl">日付</label><input type="date" id="wt-date" value="${TODAY}"></div>
+      <div style="flex:1;min-width:100px"><label class="lbl">体重(kg)</label><input type="number" id="wt-val" placeholder="69.5" step="0.1"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn btn-green" onclick="addWeight()">追加</button></div>
+    </div>
+    <table class="tbl"><thead><tr><th>日付</th><th class="r">体重</th><th></th></tr></thead>
+    <tbody>${wl.map(w=>`<tr><td>${w.date}</td><td class="r mono" style="color:var(--green)">${w.weight}kg</td><td><button onclick="delWeight(${w.id})" style="background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:16px">×</button></td></tr>`).join('')}</tbody>
+    </table>
+  </div>
+
+  <!-- Link to app settings -->
+  <div class="card" style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <div>
+      <div style="font-size:12px;font-weight:600">データ管理・バックアップ・Firebase設定</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">右上の ⚙️ ボタンから確認できます</div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ 開く</button>
+  </div>`;
+}
+function addWeight() {
+  const d = document.getElementById('wt-date').value;
+  const v = parseFloat(document.getElementById('wt-val').value);
+  if(!d||isNaN(v)) return;
+  STATE.weightLogs = STATE.weightLogs.filter(w=>w.date!==d);
+  STATE.weightLogs.push({id:nid(),date:d,weight:v});
+  STATE.profile.cw = v;
+  saveState();
+  dSub('設定');
+  toast('体重を記録しました');
+}
+function delWeight(id) {
+  STATE.weightLogs = STATE.weightLogs.filter(w=>w.id!==id);
+  saveState();
+  dSub('設定');
+}
+function profileSet(field, value) {
+  STATE.profile[field] = isNaN(value) ? value : parseFloat(value);
+  saveState();
+  renderDiet();
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+STATE.kChPeriod = '今月';
+STATE._trainExs = [{name:'',sets:'',reps:'',dur:''}];
+
+// ログインモーダルのバージョン番号を差し込む
+document.getElementById('login-modal').innerHTML =
+  document.getElementById('login-modal').innerHTML.replace('${APP_VERSION_PLACEHOLDER}', APP_VERSION);
+
+// 保存済みユーザーIDがあれば自動ログイン
+CURRENT_UID = localStorage.getItem(UID_KEY);
+if (CURRENT_UID) {
+  document.getElementById('login-modal').style.display = 'none';
+  if (!FB_CONFIGURED) document.getElementById('firebase-notice').style.display = 'block';
+  initData();
+}
+// なければログインモーダルを表示（HTMLのデフォルト状態）
+
+</script>
+</body>
+</html>
